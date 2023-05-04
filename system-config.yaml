@@ -1,0 +1,6 @@
+# File containing all system related information (things to be configured only once)
+
+# TODO: Think about everything that needs to be configured
+# - [ ] Path to datasets (dict-like?)
+# - [ ] Port for ddp setup
+# - [ ] SLURM or not
