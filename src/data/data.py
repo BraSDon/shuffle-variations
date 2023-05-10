@@ -1,19 +1,20 @@
+import importlib
+
 from torch.utils.data import DataLoader, Dataset
 from torchvision.transforms import transforms
 
 
-# TODO: Test this class!
 class MyDataset:
     """Class for handling datasets and returning dataloaders."""
 
     def __init__(
-        self, name: str, path: str, transformations: dict, load_function: dict
+        self, name: str, path: str, transformations: list[dict], load_function: dict
     ):
         self._name = name
         self._path = path
 
-        self._transform = self.__extract_transform(transformations)
-        self._load_function, self._lf_type = self.__extract_load_function(load_function)
+        self._transform = self._extract_transform(transformations)
+        self._load_function, self._lf_type = self._extract_load_function(load_function)
 
     def get_dataloaders(
         self, batch_size, sampler, num_workers, **kwargs
@@ -36,22 +37,28 @@ class MyDataset:
         return {"train": train_loader, "test": test_loader}
 
     def __get_datasets(self) -> tuple[Dataset, Dataset]:
-        train_path = self._path + "/train"
-        test_path = self._path + "/test"
-
+        assert callable(self._load_function)
         # NOTE: Adjust if load-function requires it.
         if self._lf_type == "built-in":
-            train_dataset = self._load_function(train_path, self._transform, train=True)
-            test_dataset = self._load_function(test_path, self._transform, train=False)
+            train_dataset = self._load_function(
+                self._path, transform=self._transform, train=True
+            )
+            test_dataset = self._load_function(
+                self._path, transform=self._transform, train=False
+            )
         elif self._lf_type == "generic":
-            train_dataset = self._load_function(train_path, self._transform)
-            test_dataset = self._load_function(test_path, self._transform)
+            train_dataset = self._load_function(
+                f"{self._path}/train", transform=self._transform
+            )
+            test_dataset = self._load_function(
+                f"{self._path}/test", transform=self._transform
+            )
         else:
             raise ValueError(f"Unknown load function type: {self._lf_type}")
         return train_dataset, test_dataset
 
     @staticmethod
-    def __extract_transform(transformations: dict) -> transforms.Compose:
+    def _extract_transform(transformations: list[dict]) -> transforms.Compose:
         transform_list = []
         for t in transformations:
             transform_class = getattr(transforms, t["name"])
@@ -60,14 +67,16 @@ class MyDataset:
         return transforms.Compose(transform_list)
 
     @staticmethod
-    def __extract_load_function(load_function: dict) -> tuple[callable, str]:
+    def _extract_load_function(load_function: dict) -> tuple[callable, str]:
         module, lf_type, name = (
             load_function["module"],
             load_function["type"],
             load_function["name"],
         )
 
-        module = __import__(module)
+        # Import specified module and
+        # get the function in that module with the specified name.
+        module = importlib.import_module(module)
         load_function = getattr(module, name)
         return load_function, lf_type
 
