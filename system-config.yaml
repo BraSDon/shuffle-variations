@@ -1,6 +1,62 @@
 # File containing all system related information (things to be configured only once)
 
 # TODO: Think about everything that needs to be configured
-# - [ ] Path to datasets (dict-like?)
-# - [ ] Port for ddp setup
-# - [ ] SLURM or not
+# TODO: Specify the format of the file
+
+system: server # (server | local)
+
+ddp:
+  port: 29500 # port for ddp setup
+
+# Describe datasets that are available
+datasets:
+  - name: ImageNet
+    path: /home/datasets/imagenet
+    load-function:
+      - module: torchvision.datasets
+        type: generic # (generic | built-in)
+        name: ImageNet
+    transforms:
+      - train:
+        - name: RandomResizedCrop
+          kwargs:
+            size: 224
+        - name: RandomHorizontalFlip
+          kwargs: {}
+        - name: ToTensor
+          kwargs: {}
+        - name: Normalize
+          kwargs:
+            mean: [0.485, 0.456, 0.406]
+            std: [0.229, 0.224, 0.225]
+      - val:
+        - name: Resize
+          kwargs:
+            size: 256
+        - name: CenterCrop
+          kwargs:
+            size: 224
+        - name: ToTensor
+          kwargs: {}
+        - name: Normalize
+          kwargs:
+            mean: [0.485, 0.456, 0.406]
+            std: [0.229, 0.224, 0.225]
+
+  - name: CIFAR10
+    path: /home/datasets/cifar10
+    load-function:
+      - module: torchvision.datasets
+        type: built-in
+        name: CIFAR10
+    transforms:
+      - train:
+        - name: Resize
+          kwargs:
+            size: (227, 227)
+        - name: ToTensor
+          kwargs: {}
+        - name: Normalize
+          kwargs:
+            mean: [0.485, 0.456, 0.406]
+            std: [0.229, 0.224, 0.225]
