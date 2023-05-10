@@ -20,7 +20,7 @@ class TestMyDataset(unittest.TestCase):
         dataset = MyDataset(
             "CIFAR10",
             self.data_path,
-            {},
+            [],
             {
                 "module": "torchvision.datasets.cifar",
                 "type": "built-in",

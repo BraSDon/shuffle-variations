@@ -13,9 +13,9 @@ datasets:
   - name: ImageNet
     path: /home/datasets/imagenet
     load-function:
-      - module: torchvision.datasets
-        type: generic # (generic | built-in)
-        name: ImageNet
+      module: torchvision.datasets
+      type: generic # (generic | built-in)
+      name: ImageFolder
     transforms:
       - train:
         - name: RandomResizedCrop
@@ -46,9 +46,9 @@ datasets:
   - name: CIFAR10
     path: /home/datasets/cifar10
     load-function:
-      - module: torchvision.datasets
-        type: built-in
-        name: CIFAR10
+      module: torchvision.datasets
+      type: built-in
+      name: CIFAR10
     transforms:
       - train:
         - name: Resize
