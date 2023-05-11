@@ -52,21 +52,19 @@ system: (server | local)
 ddp:
   port: <port>
 datasets:
-  - name: <dataset_name>
+  <dataset_name>
     path: <path_to_dataset>
     load-function:
       module: <module_name>
       type: (generic | built-in)
       name: <function_name>
     transforms:
-      - train:
+      train:
         - name: <transform_name>
           kwargs:
             <param_name>: <param_value>
         ...
-      - val:
-        ...
-      - test:
+      test:
         ...
 ```
 The load-function specifies how a dataset can be loaded 

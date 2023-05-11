@@ -18,7 +18,7 @@ class CaseFactory:
         :param name: Name of the configuration.
         :return: Configuration object.
         """
-        components = name.split("_")
+        components = name.split("-")
         assert len(components) == 3
 
         pre_shuffle = components[0] == "pre"

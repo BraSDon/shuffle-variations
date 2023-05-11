@@ -21,6 +21,7 @@ class TestMyDataset(unittest.TestCase):
             "CIFAR10",
             self.data_path,
             [],
+            [],
             {
                 "module": "torchvision.datasets.cifar",
                 "type": "built-in",

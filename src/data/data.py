@@ -8,12 +8,18 @@ class MyDataset:
     """Class for handling datasets and returning dataloaders."""
 
     def __init__(
-        self, name: str, path: str, transformations: list[dict], load_function: dict
+        self,
+        name: str,
+        path: str,
+        train_transformations: list[dict],
+        test_transformations: list[dict],
+        load_function: dict,
     ):
         self.name = name
         self.path = path
 
-        self.transform = self._extract_transform(transformations)
+        self.train_transform = self._extract_transform(train_transformations)
+        self.test_transform = self._extract_transform(test_transformations)
         self.load_function, self._lf_type = self._extract_load_function(load_function)
 
         self.train_dataset, self.test_dataset = self.__get_datasets()
@@ -45,17 +51,17 @@ class MyDataset:
         # NOTE: Adjust if load-function requires it.
         if self._lf_type == "built-in":
             train_dataset = self.load_function(
-                self.path, transform=self.transform, train=True
+                self.path, transform=self.train_transform, train=True
             )
             test_dataset = self.load_function(
-                self.path, transform=self.transform, train=False
+                self.path, transform=self.test_transform, train=False
             )
         elif self._lf_type == "generic":
             train_dataset = self.load_function(
-                f"{self.path}/train", transform=self.transform
+                f"{self.path}/train", transform=self.train_transform
             )
             test_dataset = self.load_function(
-                f"{self.path}/test", transform=self.transform
+                f"{self.path}/test", transform=self.test_transform
             )
         else:
             raise ValueError(f"Unknown load function type: {self._lf_type}")

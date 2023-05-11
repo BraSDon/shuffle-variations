@@ -1,12 +1,15 @@
 import argparse
 import os
 import random
+import sys
 
 import yaml
 import numpy as np
 import torch
 from torch.utils.data import Sampler, DistributedSampler
 import torch.distributed as dist
+
+sys.path.insert(0, sys.path[0] + "/../")
 
 from src.data.data import MyDataset
 from src.training.custom_sampler import CustomDistributedSampler
@@ -35,8 +38,8 @@ def main():
         dataset, run_config["case"], run_config["seed"]
     )
 
-    batch_size = run_config["batch_size"]
-    num_workers = run_config["num_workers"]
+    batch_size = run_config["batch-size"]
+    num_workers = run_config["num-workers"]
     train_loader = dataset.get_train_loader(train_sampler, batch_size, num_workers)
     test_loader = dataset.get_test_loader(test_sampler, batch_size, num_workers)
     print(train_loader, test_loader)
@@ -98,10 +101,15 @@ def get_samplers(mydataset: MyDataset, case: str, seed: int) -> tuple[Sampler, S
 def get_dataset(system_config: dict, run_config: dict) -> MyDataset:
     dataset_name = run_config["dataset"]
     path = system_config["datasets"][dataset_name]["path"]
-    transformations = system_config["datasets"][dataset_name]["transformations"]
-    load_function = system_config["datasets"][dataset_name]["load_function"]
+    train_transformations = system_config["datasets"][dataset_name]["transforms"][
+        "train"
+    ]
+    test_transformations = system_config["datasets"][dataset_name]["transforms"]["test"]
+    load_function = system_config["datasets"][dataset_name]["load-function"]
 
-    return MyDataset(dataset_name, path, transformations, load_function)
+    return MyDataset(
+        dataset_name, path, train_transformations, test_transformations, load_function
+    )
 
 
 def get_model(model: str) -> torch.nn.Module:
