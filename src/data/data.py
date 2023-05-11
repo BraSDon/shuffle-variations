@@ -17,7 +17,7 @@ class MyDataset:
         self._load_function, self._lf_type = self._extract_load_function(load_function)
 
     def get_dataloaders(
-        self, batch_size, sampler, num_workers, **kwargs
+        self, sampler, batch_size, num_workers, **kwargs
     ) -> dict[str, DataLoader]:
         train, test = self.__get_datasets()
         train_loader = DataLoader(

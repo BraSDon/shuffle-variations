@@ -30,7 +30,7 @@ class TestMyDataset(unittest.TestCase):
         batch_size = 32
         sampler = MagicMock()
         num_workers = 4
-        dataloaders = dataset.get_dataloaders(batch_size, sampler, num_workers)
+        dataloaders = dataset.get_dataloaders(sampler, batch_size, num_workers)
 
         self.assertIsInstance(dataloaders["train"], DataLoader)
         self.assertIsInstance(dataloaders["test"], DataLoader)
