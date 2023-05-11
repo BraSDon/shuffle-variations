@@ -1,6 +1,6 @@
 import importlib
 
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import DataLoader, Dataset, Sampler
 from torchvision.transforms import transforms
 
 
@@ -8,15 +8,7 @@ class MyDataset:
     """Class for handling datasets and returning dataloaders."""
 
     def __init__(
-        self,
-        name: str,
-        path: str,
-        transformations: list[dict],
-        load_function: dict,
-        sampler,
-        batch_size,
-        num_workers,
-        **kwargs,
+        self, name: str, path: str, transformations: list[dict], load_function: dict
     ):
         self.name = name
         self.path = path
@@ -25,28 +17,28 @@ class MyDataset:
         self.load_function, self._lf_type = self._extract_load_function(load_function)
 
         self.train_dataset, self.test_dataset = self.__get_datasets()
-        self.train_loader, self.test_loader = self.__get_dataloaders(
-            sampler, batch_size, num_workers, **kwargs
-        )
 
-    def __get_dataloaders(
-        self, sampler, batch_size, num_workers, **kwargs
-    ) -> tuple[DataLoader, DataLoader]:
-        train_loader = DataLoader(
+    def get_train_loader(
+        self, sampler: Sampler, batch_size: int, num_workers: int, **kwargs
+    ) -> DataLoader:
+        return DataLoader(
             self.train_dataset,
             batch_size=batch_size,
             sampler=sampler,
             num_workers=num_workers,
             **kwargs,
         )
-        test_loader = DataLoader(
+
+    def get_test_loader(
+        self, sampler: Sampler, batch_size: int, num_workers: int, **kwargs
+    ) -> DataLoader:
+        return DataLoader(
             self.test_dataset,
             batch_size=batch_size,
             sampler=sampler,
             num_workers=num_workers,
             **kwargs,
         )
-        return train_loader, test_loader
 
     def __get_datasets(self) -> tuple[Dataset, Dataset]:
         assert callable(self.load_function)

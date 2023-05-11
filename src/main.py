@@ -5,10 +5,11 @@ import random
 import yaml
 import numpy as np
 import torch
-from torch.utils.data import Sampler
+from torch.utils.data import Sampler, DistributedSampler
 import torch.distributed as dist
 
 from src.data.data import MyDataset
+from src.training.custom_sampler import CustomDistributedSampler
 from src.util.cases import CaseFactory
 
 
@@ -28,10 +29,17 @@ def main():
         system_config["system"], str(system_config["ddp"]["port"])
     )
     set_seeds(run_config["seed"])
-    # sampler = get_sampler(run_config["case"])
-    # dataset = get_dataset(system_config, run_config, sampler)
-    # train_loader, test_loader = dataset.train_loader, dataset.test_loader
-    # model = get_model(run_config["model"])
+
+    dataset = get_dataset(system_config, run_config)
+    train_sampler, test_sampler = get_samplers(
+        dataset, run_config["case"], run_config["seed"]
+    )
+
+    batch_size = run_config["batch_size"]
+    num_workers = run_config["num_workers"]
+    train_loader = dataset.get_train_loader(train_sampler, batch_size, num_workers)
+    test_loader = dataset.get_test_loader(test_sampler, batch_size, num_workers)
+    print(train_loader, test_loader)
     sanity_check()
 
     destroy_distributed_training()
@@ -79,29 +87,21 @@ def set_seeds(seed: int):
     random.seed(seed)
 
 
-def get_sampler(case: str) -> Sampler:
+def get_samplers(mydataset: MyDataset, case: str, seed: int) -> tuple[Sampler, Sampler]:
     """Returns a sampler based on the case."""
     case = CaseFactory.create_case(case)
-    pass
+    train_sampler = CustomDistributedSampler(mydataset.train_dataset, case, seed)
+    test_sampler = DistributedSampler(mydataset.test_dataset)
+    return train_sampler, test_sampler
 
 
-def get_dataset(system_config: dict, run_config: dict, sampler) -> MyDataset:
+def get_dataset(system_config: dict, run_config: dict) -> MyDataset:
     dataset_name = run_config["dataset"]
     path = system_config["datasets"][dataset_name]["path"]
     transformations = system_config["datasets"][dataset_name]["transformations"]
     load_function = system_config["datasets"][dataset_name]["load_function"]
-    batch_size = run_config["batch_size"]
-    num_workers = run_config["num_workers"]
 
-    return MyDataset(
-        dataset_name,
-        path,
-        transformations,
-        load_function,
-        sampler,
-        batch_size,
-        num_workers,
-    )
+    return MyDataset(dataset_name, path, transformations, load_function)
 
 
 def get_model(model: str) -> torch.nn.Module:

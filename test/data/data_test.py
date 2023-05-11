@@ -17,9 +17,6 @@ class TestMyDataset(unittest.TestCase):
         CIFAR10(root=cls.data_path, train=False, download=True)
 
     def test_get_dataloaders(self):
-        batch_size = 32
-        sampler = MagicMock()
-        num_workers = 4
         dataset = MyDataset(
             "CIFAR10",
             self.data_path,
@@ -29,12 +26,13 @@ class TestMyDataset(unittest.TestCase):
                 "type": "built-in",
                 "name": "CIFAR10",
             },
-            sampler,
-            batch_size,
-            num_workers,
         )
+        batch_size = 32
+        sampler = MagicMock()
+        num_workers = 4
 
-        train_loader, test_loader = dataset.train_loader, dataset.test_loader
+        train_loader = dataset.get_train_loader(sampler, batch_size, num_workers)
+        test_loader = dataset.get_test_loader(sampler, batch_size, num_workers)
 
         self.assertIsInstance(train_loader, DataLoader)
         self.assertIsInstance(test_loader, DataLoader)
