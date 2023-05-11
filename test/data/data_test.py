@@ -17,6 +17,9 @@ class TestMyDataset(unittest.TestCase):
         CIFAR10(root=cls.data_path, train=False, download=True)
 
     def test_get_dataloaders(self):
+        batch_size = 32
+        sampler = MagicMock()
+        num_workers = 4
         dataset = MyDataset(
             "CIFAR10",
             self.data_path,
@@ -26,25 +29,26 @@ class TestMyDataset(unittest.TestCase):
                 "type": "built-in",
                 "name": "CIFAR10",
             },
+            sampler,
+            batch_size,
+            num_workers,
         )
-        batch_size = 32
-        sampler = MagicMock()
-        num_workers = 4
-        dataloaders = dataset.get_dataloaders(sampler, batch_size, num_workers)
 
-        self.assertIsInstance(dataloaders["train"], DataLoader)
-        self.assertIsInstance(dataloaders["test"], DataLoader)
+        train_loader, test_loader = dataset.train_loader, dataset.test_loader
 
-        self.assertEqual(len(dataloaders["train"].dataset), 50000)
-        self.assertEqual(len(dataloaders["test"].dataset), 10000)
+        self.assertIsInstance(train_loader, DataLoader)
+        self.assertIsInstance(test_loader, DataLoader)
 
-        self.assertEqual(dataloaders["train"].batch_size, batch_size)
-        self.assertEqual(dataloaders["test"].batch_size, batch_size)
+        self.assertEqual(len(train_loader.dataset), 50000)
+        self.assertEqual(len(test_loader.dataset), 10000)
+
+        self.assertEqual(train_loader.batch_size, batch_size)
+        self.assertEqual(test_loader.batch_size, batch_size)
 
         # Iterate over the dataloaders to check if they are working.
-        for _ in dataloaders["train"]:
+        for _ in train_loader:
             break
-        for _ in dataloaders["test"]:
+        for _ in test_loader:
             break
 
     def test__extract_transform(self):

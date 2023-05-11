@@ -5,7 +5,7 @@ import random
 import yaml
 import numpy as np
 import torch
-from torch.utils.data import DataLoader, Sampler
+from torch.utils.data import Sampler
 import torch.distributed as dist
 
 from src.data.data import MyDataset
@@ -29,8 +29,8 @@ def main():
     )
     set_seeds(run_config["seed"])
     # sampler = get_sampler(run_config["case"])
-    # dataloaders = get_dataloaders(system_config, run_config, sampler)
-    # train_loader, test_loader = dataloaders["train"], dataloaders["test"]
+    # dataset = get_dataset(system_config, run_config, sampler)
+    # train_loader, test_loader = dataset.train_loader, dataset.test_loader
     # model = get_model(run_config["model"])
     sanity_check()
 
@@ -85,20 +85,23 @@ def get_sampler(case: str) -> Sampler:
     pass
 
 
-def get_dataloaders(
-    system_config: dict, run_config: dict, sampler
-) -> dict[str, DataLoader]:
+def get_dataset(system_config: dict, run_config: dict, sampler) -> MyDataset:
     dataset_name = run_config["dataset"]
     path = system_config["datasets"][dataset_name]["path"]
     transformations = system_config["datasets"][dataset_name]["transformations"]
     load_function = system_config["datasets"][dataset_name]["load_function"]
-
-    dataset = MyDataset(dataset_name, path, transformations, load_function)
-
     batch_size = run_config["batch_size"]
     num_workers = run_config["num_workers"]
 
-    return dataset.get_dataloaders(sampler, batch_size, num_workers)
+    return MyDataset(
+        dataset_name,
+        path,
+        transformations,
+        load_function,
+        sampler,
+        batch_size,
+        num_workers,
+    )
 
 
 def get_model(model: str) -> torch.nn.Module:
