@@ -1,7 +1,7 @@
 from src.data.partition import SequentialPartitioner, StepPartitioner
 
 
-class Configuration:
+class Case:
     def __init__(self, name, pre_shuffle, partitioner, shuffle):
         self.name = name
         self.pre_shuffle = pre_shuffle
@@ -9,9 +9,9 @@ class Configuration:
         self.shuffle = shuffle
 
 
-class ConfigurationFactory:
+class CaseFactory:
     @staticmethod
-    def create_configuration(name: str) -> Configuration:
+    def create_case(name: str) -> Case:
         """
         Create a configuration from a name.
         Expect the name to be of the form "{pre|asis}_{step|seq}_{local|noshuffle}".
@@ -26,4 +26,4 @@ class ConfigurationFactory:
             StepPartitioner() if components[1] == "step" else SequentialPartitioner()
         )
         shuffle = components[2] == "local"
-        return Configuration(name, pre_shuffle, partitioner, shuffle)
+        return Case(name, pre_shuffle, partitioner, shuffle)
