@@ -9,6 +9,7 @@ from torch.utils.data import DataLoader, Sampler
 import torch.distributed as dist
 
 from src.data.data import MyDataset
+from src.util.cases import CaseFactory
 
 
 def main():
@@ -27,7 +28,7 @@ def main():
         system_config["system"], str(system_config["ddp"]["port"])
     )
     set_seeds(run_config["seed"])
-    # sampler = get_sampler(run_config["sampler"])
+    # sampler = get_sampler(run_config["case"])
     # dataloaders = get_dataloaders(system_config, run_config, sampler)
     # train_loader, test_loader = dataloaders["train"], dataloaders["test"]
     # model = get_model(run_config["model"])
@@ -80,6 +81,7 @@ def set_seeds(seed: int):
 
 def get_sampler(case: str) -> Sampler:
     """Returns a sampler based on the case."""
+    case = CaseFactory.create_case(case)
     pass
 
 
