@@ -18,7 +18,6 @@ class CustomDistributedSampler(Sampler):
         self.seed = seed + self.rank
         self.generator = torch.Generator()
         # Each rank receives different generator seed.
-        # TODO: Test if set_epoch is necessary (like in DistributedSampler).
         self.generator.manual_seed(self.seed)
 
         if self.rank < 0 or self.rank >= self.world_size:
