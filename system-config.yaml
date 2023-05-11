@@ -3,7 +3,9 @@
 # TODO: Think about everything that needs to be configured
 # TODO: Specify the format of the file
 
-system: server # (server | local)
+# NOTE: Local execution must be performed using the following command:
+# torchrun --nproc_per_node=4 main.py
+system: local # (server | local)
 
 ddp:
   port: 29500 # port for ddp setup
