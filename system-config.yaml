@@ -53,9 +53,6 @@ datasets:
       name: CIFAR10
     transforms:
       train:
-        - name: Resize
-          kwargs:
-            size: 227
         - name: ToTensor
           kwargs: {}
         - name: Normalize
@@ -63,9 +60,6 @@ datasets:
             mean: [0.485, 0.456, 0.406]
             std: [0.229, 0.224, 0.225]
       test:
-        - name: Resize
-          kwargs:
-            size: 227
         - name: ToTensor
           kwargs: {}
         - name: Normalize
