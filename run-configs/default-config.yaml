@@ -3,6 +3,8 @@
 dataset: CIFAR10
 model: alexnet
 case: pre-step-local
+criterion: cross-entropy
+optimizer: adam
 seed: 1
 num-workers: 4
 batch-size: 128

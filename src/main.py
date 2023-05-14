@@ -43,6 +43,18 @@ def main():
     train_loader = dataset.get_train_loader(train_sampler, batch_size, num_workers)
     test_loader = dataset.get_test_loader(test_sampler, batch_size, num_workers)
     print(train_loader, test_loader)
+
+    model = get_model(run_config["model"])
+
+    kwargs = {
+        "lr": run_config["learning-rate"],
+        "weight_decay": run_config["weight-decay"],
+        "momentum": run_config["momentum"],
+    }
+    criterion = get_criterion(run_config["criterion"])
+    optimizer = get_optimizer(run_config["optimizer"], model, **kwargs)
+
+    print(criterion, optimizer)
     sanity_check()
 
     destroy_distributed_training()
@@ -115,6 +127,26 @@ def get_dataset(system_config: dict, run_config: dict) -> MyDataset:
 def get_model(model: str) -> torch.nn.Module:
     """Return the model with the given name."""
     pass
+
+
+def get_criterion(criterion: str):
+    """Return the criterion with the given name."""
+    if criterion == "cross-entropy":
+        return torch.nn.CrossEntropyLoss()
+    elif criterion == "mse":
+        return torch.nn.MSELoss()
+    else:
+        raise NotImplementedError(f"Criterion {criterion} not implemented.")
+
+
+def get_optimizer(optimizer: str, model: torch.nn.Module, **kwargs):
+    """Return the optimizer with the given name."""
+    if optimizer == "sgd":
+        return torch.optim.SGD(model.parameters(), **kwargs)
+    elif optimizer == "adam":
+        return torch.optim.Adam(model.parameters(), **kwargs)
+    else:
+        raise NotImplementedError(f"Optimizer {optimizer} not implemented.")
 
 
 def sanity_check():
