@@ -3,6 +3,7 @@ import os
 import random
 import sys
 
+import torchvision.models.alexnet
 import yaml
 import numpy as np
 import torch
@@ -11,6 +12,8 @@ import torch.distributed as dist
 
 sys.path.insert(0, sys.path[0] + "/../")
 
+from src.models.models import DummyModel
+from src.training.train import Trainer
 from src.data.data import MyDataset
 from src.training.custom_sampler import CustomDistributedSampler
 from src.util.cases import CaseFactory
@@ -18,45 +21,59 @@ from src.util.cases import CaseFactory
 
 def main():
     # 1. Parse arguments
-    # 2. Setup distributed training (if applicable)
-    # 2a. Set seeds
-    # 3. Setup dataloaders
-    # 4. Setup model
-    # 5. Setup training_objects (criterion, optimizer, lr_scheduler)
-    # 6. Setup trainer
-    # 7. Run training
-    # 8. Store results
-    # 9. Free resources
     system_config, run_config = parse_configs()
+
+    # 2. Setup distributed training (if applicable)
     setup_distributed_training(
         system_config["system"], str(system_config["ddp"]["port"])
     )
+
+    # 3. Set seed
     set_seeds(run_config["seed"])
 
+    # 4. Setup dataloaders
     dataset = get_dataset(system_config, run_config)
     train_sampler, test_sampler = get_samplers(
         dataset, run_config["case"], run_config["seed"]
     )
-
     batch_size = run_config["batch-size"]
     num_workers = run_config["num-workers"]
     train_loader = dataset.get_train_loader(train_sampler, batch_size, num_workers)
     test_loader = dataset.get_test_loader(test_sampler, batch_size, num_workers)
-    print(train_loader, test_loader)
 
-    model = get_model(run_config["model"])
+    # 5. Setup model
+    model = get_model_by_name(run_config["model"])
+    assert model is not None
 
-    kwargs = {
-        "lr": run_config["learning-rate"],
-        "weight_decay": run_config["weight-decay"],
-        "momentum": run_config["momentum"],
-    }
+    # 6. Setup training_objects (criterion, optimizer)
     criterion = get_criterion(run_config["criterion"])
-    optimizer = get_optimizer(run_config["optimizer"], model, **kwargs)
+    optimizer = get_optimizer(
+        run_config["optimizer"],
+        model,
+        run_config["learning-rate"],
+        run_config["weight-decay"],
+        run_config["momentum"],
+    )
 
-    print(criterion, optimizer)
-    sanity_check()
+    # 7. Perform sanity check before training
+    sanity_check(system_config["system"])
 
+    # 8. Setup trainer
+    trainer = Trainer(
+        model=model,
+        train_loader=train_loader,
+        test_loader=test_loader,
+        criterion=criterion,
+        optimizer=optimizer,
+        system=system_config["system"],
+    )
+
+    # 9. Run training
+    trainer.train(run_config["max-epochs"])
+
+    # TODO: 10. Store results
+
+    # 11. Free resources
     destroy_distributed_training()
 
 
@@ -124,9 +141,14 @@ def get_dataset(system_config: dict, run_config: dict) -> MyDataset:
     )
 
 
-def get_model(model: str) -> torch.nn.Module:
+def get_model_by_name(model: str) -> torch.nn.Module:
     """Return the model with the given name."""
-    pass
+    if model == "dummy":
+        return DummyModel()
+    elif model == "alexnet":
+        return torchvision.models.alexnet()
+    else:
+        raise NotImplementedError(f"Model {model} not implemented.")
 
 
 def get_criterion(criterion: str):
@@ -139,21 +161,24 @@ def get_criterion(criterion: str):
         raise NotImplementedError(f"Criterion {criterion} not implemented.")
 
 
-def get_optimizer(optimizer: str, model: torch.nn.Module, **kwargs):
+def get_optimizer(optimizer: str, model: torch.nn.Module, lr, weight_decay, momentum):
     """Return the optimizer with the given name."""
     if optimizer == "sgd":
-        return torch.optim.SGD(model.parameters(), **kwargs)
+        return torch.optim.SGD(
+            model.parameters(), lr=lr, weight_decay=weight_decay, momentum=momentum
+        )
     elif optimizer == "adam":
-        return torch.optim.Adam(model.parameters(), **kwargs)
+        return torch.optim.Adam(model.parameters(), lr=lr, weight_decay=weight_decay)
     else:
         raise NotImplementedError(f"Optimizer {optimizer} not implemented.")
 
 
-def sanity_check():
+def sanity_check(device):
     rank = dist.get_rank()
     world_size = dist.get_world_size()
     print(f"Rank: {rank}, world_size: {world_size}")
     dist.barrier()
+    print(f"Running on {device}")
 
 
 def destroy_distributed_training():

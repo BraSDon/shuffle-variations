@@ -1,15 +1,15 @@
 # TODO: Add more options if required
 
 dataset: CIFAR10
-model: alexnet
+model: dummy
 case: pre-step-local
 criterion: cross-entropy
 optimizer: adam
 seed: 1
 num-workers: 4
-batch-size: 128
+batch-size: 32
 learning-rate: 0.1
 momentum: 0.9
 weight-decay: 0.0005
-num-epochs: 50
+max-epochs: 5
 warmup-epochs: 5
