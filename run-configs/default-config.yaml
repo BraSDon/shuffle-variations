@@ -1,5 +1,6 @@
 # TODO: Add more options if required
 
+group: default
 dataset: CIFAR10
 model: dummy
 case: pre-step-local
@@ -11,5 +12,5 @@ batch-size: 32
 learning-rate: 0.1
 momentum: 0.9
 weight-decay: 0.0005
-max-epochs: 5
+max-epochs: 2
 warmup-epochs: 5
