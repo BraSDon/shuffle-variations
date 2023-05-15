@@ -1,4 +1,5 @@
 import os
+import wandb
 
 import torch
 from torch.nn.parallel import DistributedDataParallel as DDP
@@ -35,6 +36,8 @@ class Trainer:
             loss = self.criterion(outputs, labels)
             loss.backward()
             self.optimizer.step()
+
+            wandb.log({"loss": loss.item()})
 
         print(f"Epoch {epoch} finished")
 

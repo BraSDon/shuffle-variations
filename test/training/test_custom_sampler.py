@@ -8,7 +8,7 @@ from torchvision.datasets import CIFAR10
 
 sys.path.insert(0, sys.path[0] + "/../../")
 
-from src.main import setup_distributed_training, destroy_distributed_training
+from src.main import setup_distributed_training, free_resources
 from src.data.partition import SequentialPartitioner
 from src.util.cases import Case
 from src.training.custom_sampler import CustomDistributedSampler
@@ -34,7 +34,7 @@ class TestCustomDistributedSampler(unittest.TestCase):
     def tearDownClass(cls) -> None:
         if not dist.is_initialized():
             return
-        destroy_distributed_training()
+        free_resources()
 
     def test_init(self):
         if not dist.is_initialized():

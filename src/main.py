@@ -4,6 +4,7 @@ import random
 import sys
 
 import torchvision.models.alexnet
+import wandb
 import yaml
 import numpy as np
 import torch
@@ -27,6 +28,9 @@ def main():
     setup_distributed_training(
         system_config["system"], str(system_config["ddp"]["port"])
     )
+
+    # 2a. Setup logging
+    setup_logging(run_config)
 
     # 3. Set seed
     set_seeds(run_config["seed"])
@@ -74,7 +78,7 @@ def main():
     # TODO: 10. Store results
 
     # 11. Free resources
-    destroy_distributed_training()
+    free_resources()
 
 
 def parse_configs() -> tuple[dict, dict]:
@@ -108,6 +112,16 @@ def setup_distributed_training(system: str, port: str):
     os.environ["MASTER_ADDR"] = addr
     os.environ["MASTER_PORT"] = port
     dist.init_process_group("nccl", rank=rank, world_size=world_size)
+
+
+def setup_logging(run_config):
+    # TODO: Log to node local file system to avoid load on shared file system.
+    wandb.init(
+        project="paper",
+        group=run_config["group"],
+        name=f"{run_config['case']}-rank-{dist.get_rank()}",
+        config=run_config,
+    )
 
 
 def set_seeds(seed: int):
@@ -181,7 +195,8 @@ def sanity_check(device):
     print(f"Running on {device}")
 
 
-def destroy_distributed_training():
+def free_resources():
+    wandb.finish()
     dist.destroy_process_group()
 
 
