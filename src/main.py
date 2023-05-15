@@ -84,7 +84,7 @@ def main():
 def parse_configs() -> tuple[dict, dict]:
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--config_path", type=str, default="../run-configs/default-config.yaml"
+        "--config_path", type=str, default="run-configs/default-config.yaml"
     )
 
     args = parser.parse_args()
@@ -92,7 +92,7 @@ def parse_configs() -> tuple[dict, dict]:
     with open(args.config_path, "r") as f:
         run_config = yaml.safe_load(f)
 
-    with open("../system-config.yaml", "r") as f:
+    with open("system-config.yaml", "r") as f:
         system_config = yaml.safe_load(f)
 
     return system_config, run_config
