@@ -1,4 +1,4 @@
-#!bin/bash
+#!/bin/bash
 
 #SBATCH --job-name=haicore-default
 #SBATCH --output=haicore-default.out
@@ -14,4 +14,5 @@ module load mpi/openmpi/4.1
 
 source /hkfs/work/workspace/scratch/tz6121-paper/paper/venv/bin/activate
 
-srun python -u ../src/main.py
+cd ..
+srun python -u src/main.py
