@@ -44,3 +44,6 @@ class CustomDistributedSampler(Sampler):
             indices = self.indices
 
         return iter(indices)
+
+    def __len__(self):
+        return len(self.indices)
