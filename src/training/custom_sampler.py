@@ -25,17 +25,20 @@ class CustomDistributedSampler(Sampler):
                 f"Invalid rank {self.rank}, "
                 f"rank should be in the interval [0, {self.world_size - 1}]"
             )
+        # pre vs. asis
         if self.case.pre_shuffle:
             # TODO: Test if all ranks get the same indices.
             indices = torch.randperm(len(self.dataset)).tolist()
         else:
             indices = list(range(len(self.dataset)))
 
+        # step-wise vs. sequential partitioning
         self.indices = self.case.partitioner.partition(self.world_size, indices)[
             self.rank
         ]
 
     def __iter__(self):
+        # local vs. no-shuffle
         if self.case.shuffle:
             indices = torch.randperm(
                 len(self.dataset), generator=self.generator
