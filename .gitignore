@@ -1,5 +1,5 @@
 .idea
-data/
+/data/
 src/wandb/
 
 # Byte-compiled / optimized / DLL files
