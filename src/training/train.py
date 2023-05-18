@@ -6,6 +6,8 @@ import torch
 import torch.distributed as dist
 from torch.nn.parallel import DistributedDataParallel as DDP
 
+from src.util.helper import print0
+
 
 class Trainer:
     def __init__(self, model, optimizer, criterion, train_loader, test_loader, system):
@@ -129,8 +131,3 @@ class Trainer:
                 correct_k = correct[:k].reshape(-1).float().sum(0, keepdim=True)
                 res.append(correct_k.mul_(100.0 / batch_size).item())
             return res
-
-
-def print0(message):
-    if dist.get_rank() == 0:
-        print(message)
