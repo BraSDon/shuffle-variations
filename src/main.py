@@ -35,14 +35,14 @@ def main():
     set_seeds(run_config["seed"])
 
     # 4. Setup dataloaders
-    dataset = get_dataset(system_config, run_config)
+    my_dataset = get_dataset(system_config, run_config)
     train_sampler, test_sampler = get_samplers(
-        dataset, run_config["case"], run_config["seed"]
+        my_dataset, run_config["case"], run_config["seed"]
     )
     batch_size = run_config["batch-size"]
     num_workers = run_config["num-workers"]
-    train_loader = dataset.get_train_loader(train_sampler, batch_size, num_workers)
-    test_loader = dataset.get_test_loader(test_sampler, batch_size, num_workers)
+    train_loader = my_dataset.get_train_loader(train_sampler, batch_size, num_workers)
+    test_loader = my_dataset.get_test_loader(test_sampler, batch_size, num_workers)
 
     # 5. Setup model
     model = get_model_by_name(system_config, run_config)
@@ -62,14 +62,9 @@ def main():
     sanity_check(system_config["system"])
 
     # 8. Setup trainer
-    trainer = Trainer(
-        model=model,
-        train_loader=train_loader,
-        test_loader=test_loader,
-        criterion=criterion,
-        optimizer=optimizer,
-        system=system_config["system"],
-    )
+    trainer = Trainer(model=model, optimizer=optimizer, criterion=criterion, train_loader=train_loader,
+                      test_loader=test_loader, system=system_config["system"],
+                      my_dataset=my_dataset)
 
     # 9. Run training
     trainer.train(run_config["max-epochs"])
@@ -114,7 +109,6 @@ def setup_distributed_training(system: str, port: str):
 
 
 def setup_logging(run_config):
-    # TODO: Log to node local file system to avoid load on shared file system.
     wandb.init(
         project="paper",
         group=run_config["group"],
@@ -149,9 +143,7 @@ def get_dataset(system_config: dict, run_config: dict) -> MyDataset:
     test_transformations = system_config["datasets"][dataset_name]["transforms"]["test"]
     load_function = system_config["datasets"][dataset_name]["load-function"]
 
-    return MyDataset(
-        dataset_name, path, train_transformations, test_transformations, load_function
-    )
+    return MyDataset(dataset_name, path, train_transformations, test_transformations, load_function, 10)
 
 
 def get_model_by_name(system_config, run_config) -> torch.nn.Module:

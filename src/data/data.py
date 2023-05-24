@@ -1,5 +1,7 @@
 import importlib
+from collections import defaultdict
 
+import torch
 from torch.utils.data import DataLoader, Dataset, Sampler
 from torchvision.transforms import transforms
 
@@ -9,16 +11,11 @@ from src.data.sorted_dataset import SortedDataset
 class MyDataset:
     """Class for handling datasets and returning dataloaders."""
 
-    def __init__(
-        self,
-        name: str,
-        path: str,
-        train_transformations: list[dict],
-        test_transformations: list[dict],
-        load_function: dict,
-    ):
+    def __init__(self, name: str, path: str, train_transformations: list[dict], test_transformations: list[dict],
+                 load_function: dict, num_classes: int):
         self.name = name
         self.path = path
+        self.num_classes = num_classes
 
         self.train_transform = self._extract_transform(train_transformations)
         self.test_transform = self._extract_transform(test_transformations)
@@ -26,6 +23,7 @@ class MyDataset:
 
         self.train_dataset, self.test_dataset = self.__get_datasets()
         self.sort_train_dataset()  # Make sure that train_dataset is sorted by class.
+        self.train_label_frequencies = self._get_train_label_frequencies()
 
     def get_train_loader(
         self, sampler: Sampler, batch_size: int, num_workers: int, **kwargs
@@ -72,6 +70,15 @@ class MyDataset:
 
     def sort_train_dataset(self):
         self.train_dataset = SortedDataset(self.train_dataset)
+
+    def _get_train_label_frequencies(self):
+        # Calculate label frequency for train dataset.
+        total_freq = torch.zeros(self.num_classes)
+        dl = DataLoader(self.train_dataset, batch_size=32, num_workers=4)
+        for _, labels in dl:
+            freq = torch.bincount(labels, minlength=self.num_classes)
+            total_freq += freq
+        return total_freq / total_freq.sum()
 
     @staticmethod
     def _extract_transform(transformations: list[dict]) -> transforms.Compose:

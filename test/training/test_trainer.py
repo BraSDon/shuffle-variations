@@ -32,16 +32,12 @@ class TestTrainer(unittest.TestCase):
         self.train_loader = MagicMock()
         self.test_loader = MagicMock()
         self.system = "local"
+        self.my_dataset = MagicMock()
+        self.my_dataset.num_classes = 10
 
         # Create the Trainer instance
-        self.trainer = Trainer(
-            self.model,
-            self.optimizer,
-            self.criterion,
-            self.train_loader,
-            self.test_loader,
-            self.system,
-        )
+        self.trainer = Trainer(self.model, self.optimizer, self.criterion, self.train_loader, self.test_loader,
+                               self.system, self.my_dataset)
 
     def test_init(self):
         if not dist.is_initialized():

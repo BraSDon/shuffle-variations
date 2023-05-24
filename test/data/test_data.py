@@ -17,17 +17,14 @@ class TestMyDataset(unittest.TestCase):
         CIFAR10(root=cls.data_path, train=False, download=True)
 
     def test_get_dataloaders(self):
-        dataset = MyDataset(
-            "CIFAR10",
-            self.data_path,
-            [],
-            [],
-            {
-                "module": "torchvision.datasets.cifar",
-                "type": "built-in",
-                "name": "CIFAR10",
-            },
-        )
+        train_transformations = [
+            {"name": "ToTensor", "kwargs": {}},
+        ]
+        dataset = MyDataset("CIFAR10", self.data_path, train_transformations, [], {
+            "module": "torchvision.datasets.cifar",
+            "type": "built-in",
+            "name": "CIFAR10",
+        }, 10)
         batch_size = 32
         sampler = MagicMock()
         num_workers = 4

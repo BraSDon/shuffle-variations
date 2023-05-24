@@ -37,6 +37,7 @@ models:
 datasets:
   ImageNet:
     path: /home/datasets/imagenet
+    num-classes: 1000
     load-function:
       module: torchvision.datasets
       type: generic # (generic | built-in)
@@ -69,7 +70,8 @@ datasets:
             std: [0.229, 0.224, 0.225]
 
   CIFAR10:
-    path: ../data
+    path: ./data
+    num-classes: 10
     load-function:
       module: torchvision.datasets
       type: built-in

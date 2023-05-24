@@ -1,6 +1,8 @@
 import os
 from time import time
 import wandb
+from scipy.spatial.distance import jensenshannon
+from scipy.special import kl_div
 
 import torch
 import torch.distributed as dist
@@ -10,11 +12,12 @@ from src.util.helper import print0
 
 
 class Trainer:
-    def __init__(self, model, optimizer, criterion, train_loader, test_loader, system):
+    def __init__(self, model, optimizer, criterion, train_loader, test_loader, system, my_dataset):
         self.optimizer = optimizer
         self.criterion = criterion
         self.train_loader = train_loader
         self.test_loader = test_loader
+        self.my_dataset = my_dataset
 
         if system == "local":
             self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -39,7 +42,7 @@ class Trainer:
         num_batches = len(self.train_loader)
         start_time = time()
         # TODO: Log label distribution and/or JSD between batch and dataset
-        for inputs, labels in self.train_loader:
+        for i, (inputs, labels) in enumerate(self.train_loader):
             inputs, labels = inputs.to(self.device), labels.to(self.device)
             self.optimizer.zero_grad()
             outputs = self.model(inputs)
@@ -52,12 +55,40 @@ class Trainer:
             acc1_sum += top1
             acc5_sum += top5
 
+            self.log_minibatch(labels, i, train=True)
+
         required_time = time() - start_time
         self.log_statistics(
             acc1_sum, acc5_sum, epoch, loss_sum, num_batches, required_time, train=True
         )
 
         print0(f"Epoch {epoch} finished")
+
+    def test(self, epoch: int):
+        self.model.eval()
+
+        loss_sum = 0
+        acc1_sum = 0
+        acc5_sum = 0
+        num_batches = len(self.test_loader)
+        start_time = time()
+        with torch.no_grad():
+            for i, (inputs, labels) in enumerate(self.test_loader):
+                inputs, labels = inputs.to(self.device), labels.to(self.device)
+                outputs = self.model(inputs)
+                loss = self.criterion(outputs, labels)
+
+                loss_sum += loss.item()
+                top1, top5 = self.calculate_accuracy(outputs, labels)
+                acc1_sum += top1
+                acc5_sum += top5
+
+                self.log_minibatch(labels, i, train=False)
+
+        required_time = time() - start_time
+        self.log_statistics(
+            acc1_sum, acc5_sum, epoch, loss_sum, num_batches, required_time, train=False
+        )
 
     def log_statistics(
         self, acc1_sum, acc5_sum, epoch, loss_sum, num_batches, required_time, train
@@ -89,33 +120,10 @@ class Trainer:
             }
         )
 
-    def test(self, epoch: int):
-        self.model.eval()
-
-        loss_sum = 0
-        acc1_sum = 0
-        acc5_sum = 0
-        num_batches = len(self.test_loader)
-        start_time = time()
-        with torch.no_grad():
-            for inputs, labels in self.test_loader:
-                inputs, labels = inputs.to(self.device), labels.to(self.device)
-                outputs = self.model(inputs)
-                loss = self.criterion(outputs, labels)
-
-                loss_sum += loss.item()
-                top1, top5 = self.calculate_accuracy(outputs, labels)
-                acc1_sum += top1
-                acc5_sum += top5
-        required_time = time() - start_time
-        self.log_statistics(
-            acc1_sum, acc5_sum, epoch, loss_sum, num_batches, required_time, train=False
-        )
-
     def average_statistic(self, statistic):
-        loss_tensor = torch.tensor(statistic).to(self.device)
-        dist.all_reduce(loss_tensor, op=dist.ReduceOp.SUM)
-        return loss_tensor.item() / dist.get_world_size()
+        tensor = torch.tensor(statistic).to(self.device)
+        dist.all_reduce(tensor, op=dist.ReduceOp.SUM)
+        return tensor.item() / dist.get_world_size()
 
     def calculate_accuracy(self, outputs, labels, topk=(1, 5)):
         with torch.no_grad():
@@ -131,3 +139,26 @@ class Trainer:
                 correct_k = correct[:k].reshape(-1).float().sum(0, keepdim=True)
                 res.append(correct_k.mul_(100.0 / batch_size).item())
             return res
+
+    def log_minibatch(self, local_minibatch_labels: torch.tensor, batch: int, train) -> None:
+        prefix = "train" if train else "test"
+
+        # TODO: Fix logging KL and frequencies!!!
+        # Calculate relative frequency of each label in the minibatch
+        label_counts = torch.bincount(local_minibatch_labels, minlength=self.my_dataset.num_classes)
+        label_frequencies = label_counts.float() / label_counts.sum()
+        ref_freq = self.my_dataset.train_label_frequencies
+        kl = float(kl_div(label_frequencies, ref_freq))
+        js = jensenshannon(label_frequencies, ref_freq)
+        wandb.log({f"{prefix}_batch": batch, f"{prefix}_local_label_frequencies": label_frequencies.tolist(),
+                   f"{prefix}_local_kl_div": kl, f"{prefix}_local_js_div": js})
+
+        # Gather all label frequencies from all processes
+        label_frequencies = label_frequencies.to(self.device)
+        dist.all_reduce(label_frequencies, op=dist.ReduceOp.SUM)
+        label_frequencies /= dist.get_world_size()
+        kl = float(kl_div(label_frequencies, ref_freq))
+        js = jensenshannon(label_frequencies, ref_freq)
+        wandb.log({f"{prefix}_batch": batch, f"{prefix}_global_label_frequencies": label_frequencies.tolist(),
+                   f"{prefix}_global_kl_div": kl, f"{prefix}_global_js_div": js})
+
