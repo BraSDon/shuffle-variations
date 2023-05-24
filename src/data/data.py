@@ -1,7 +1,11 @@
 import importlib
-from collections import defaultdict
+import os
+import shutil
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from time import time
 
 import torch
+import torch.distributed as dist
 from torch.utils.data import DataLoader, Dataset, Sampler
 from torchvision.transforms import transforms
 
@@ -20,6 +24,9 @@ class MyDataset:
         self.train_transform = self._extract_transform(train_transformations)
         self.test_transform = self._extract_transform(test_transformations)
         self.load_function, self._lf_type = self._extract_load_function(load_function)
+
+        # Move dataset to node-local storage.
+        self.path = self.copy_dataset_to_tmp()
 
         self.train_dataset, self.test_dataset = self.__get_datasets()
         self.sort_train_dataset()  # Make sure that train_dataset is sorted by class.
@@ -102,3 +109,43 @@ class MyDataset:
         module = importlib.import_module(module)
         load_function = getattr(module, name)
         return load_function, lf_type
+
+    def copy_dataset_to_tmp(self):
+        try:
+            tmp_path = os.environ["TMPDIR"]
+        except KeyError:
+            print("TMPDIR not set, using original path.")
+            return self.path
+        src_dir = self.path
+        dst_dir = f"{tmp_path}/{self.name}"
+        global_rank = dist.get_rank()
+        local_rank = global_rank % int(os.environ["SLURM_GPUS_ON_NODE"])
+        if local_rank == 0:
+            start = time()
+            print(f"[GPU {global_rank}] Copying dataset to {dst_dir}...")
+            self.copy_files(src_dir, dst_dir)
+            print(f"[GPU {global_rank}] Done copying dataset in {time() - start:.2f}s.")
+        dist.barrier()
+        return dst_dir
+    
+    def copy_files(self, src_dir, dst_dir, max_workers=32):
+        os.makedirs(dst_dir, exist_ok=True)
+        
+        # Get a list of all files and directories in the source directory
+        for dirpath, dirnames, filenames in os.walk(src_dir):
+            # Create the corresponding subdirectories in the destination directory
+            subdir = dirpath.replace(src_dir, dst_dir)
+            os.makedirs(subdir, exist_ok=True)
+
+            # Create a ThreadPoolExecutor with a max of 4 worker threads
+            with ThreadPoolExecutor(max_workers=max_workers) as executor:
+                # Submit the copy_file function for each file in the list
+                futures = [executor.submit(self.copy_file, os.path.join(dirpath, f), os.path.join(subdir, f)) for f in
+                           filenames]
+                for future in as_completed(futures):
+                    future.result()
+
+    @staticmethod
+    def copy_file(src, dst):
+        shutil.copy2(src, dst)
+
