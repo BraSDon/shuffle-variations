@@ -46,7 +46,7 @@ datasets:
             std: [0.229, 0.224, 0.225]
 
   CIFAR10:
-    path: C:\Users\brand\PycharmProjects\paper\data
+    path: ../data
     load-function:
       module: torchvision.datasets
       type: built-in
