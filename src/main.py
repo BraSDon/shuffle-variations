@@ -3,7 +3,6 @@ import os
 import random
 import sys
 
-import torchvision.models.alexnet
 import wandb
 import yaml
 import numpy as np
@@ -46,7 +45,7 @@ def main():
     test_loader = dataset.get_test_loader(test_sampler, batch_size, num_workers)
 
     # 5. Setup model
-    model = get_model_by_name(run_config["model"])
+    model = get_model_by_name(system_config, run_config)
     assert model is not None
 
     # 6. Setup training_objects (criterion, optimizer)
@@ -84,7 +83,7 @@ def main():
 def parse_configs() -> tuple[dict, dict]:
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--config_path", type=str, default="../run-configs/default-config.yaml"
+        "--config_path", type=str, default="run-configs/default-config.yaml"
     )
 
     args = parser.parse_args()
@@ -92,7 +91,7 @@ def parse_configs() -> tuple[dict, dict]:
     with open(args.config_path, "r") as f:
         run_config = yaml.safe_load(f)
 
-    with open("../system-config.yaml", "r") as f:
+    with open("system-config.yaml", "r") as f:
         system_config = yaml.safe_load(f)
 
     return system_config, run_config
@@ -155,14 +154,21 @@ def get_dataset(system_config: dict, run_config: dict) -> MyDataset:
     )
 
 
-def get_model_by_name(model: str) -> torch.nn.Module:
-    """Return the model with the given name."""
+def get_model_by_name(system_config, run_config) -> torch.nn.Module:
+    """Return the model with the given name using torch.hub.load."""
+    name = run_config["model"]
+    repo = system_config["models"][name]["torch.hub.load"]["repo"]
+    model = system_config["models"][name]["torch.hub.load"]["model"]
+
     if model == "dummy":
         return DummyModel()
-    elif model == "alexnet":
-        return torchvision.models.alexnet()
     else:
-        raise NotImplementedError(f"Model {model} not implemented.")
+        try:
+            return torch.hub.load(repo, model, pretrained=False, trust_repo=True)
+        except:
+            raise NotImplementedError(
+                f"An error occurred while loading {model}" f" from torch.hub."
+            )
 
 
 def get_criterion(criterion: str):

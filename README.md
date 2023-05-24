@@ -11,34 +11,36 @@ Repository for experiments regarding &lt;paper>
 ```
 .
 ├── README.md
+├── data
 ├── notebooks
 │    ├── README.md
+├── run-configs
+├── slurm
 ├── src
     ├── README.md
     ├── main.py
     ├── data
     │    ├── README.md
     │    ├── data.py
-    │    ├── transparent.py
-    │    ├── stage
-    │    │    ├── README.md
-    │    │    ├── stage.py
+    │    ├── partition.py
+    │    ├── sorted_dataset.py
     ├── models
     │    ├── README.md
     │    ├── models.py
     ├── training
     │    ├── README.md
     │    ├── train.py
-    │    ├── evaluate.py
-    │    ├── training_objects.py
+    │    ├── custom_sampler.py
     ├── util
     │    ├── README.md
-    │    ├── parser.py
-    │    ├── logger.py
+    │    ├── cases.py
+    │    ├── helper.py
     ├── visualization
     │    ├── README.md
     │    ├── visualize.py
 ├── test
+├── wandb
+├── system-config.yaml
 ```
 
 ## system-config.yaml

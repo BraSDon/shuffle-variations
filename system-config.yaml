@@ -10,6 +10,29 @@ system: local # (server | local)
 ddp:
   port: 29500 # port for ddp setup
 
+models:
+  dummy:
+    torch.hub.load:
+      repo: dummy
+      model: dummy
+  alexnet:
+    torch.hub.load:
+      repo: pytorch/vision:v0.10.0
+      model: alexnet
+  resnet18:
+    torch.hub.load:
+      repo: pytorch/vision:v0.10.0
+      model: resnet18
+  resnet50:
+    torch.hub.load:
+      repo: pytorch/vision:v0.10.0
+      model: resnet50
+  nvidia_efficientnet_b0:
+    torch.hub.load:
+      repo: NVIDIA/DeepLearningExamples:torchhub
+      model: nvidia_efficientnet_b0
+
+
 # Describe datasets that are available
 datasets:
   ImageNet:

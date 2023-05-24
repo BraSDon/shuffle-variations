@@ -3,6 +3,8 @@ import importlib
 from torch.utils.data import DataLoader, Dataset, Sampler
 from torchvision.transforms import transforms
 
+from src.data.sorted_dataset import SortedDataset
+
 
 class MyDataset:
     """Class for handling datasets and returning dataloaders."""
@@ -23,6 +25,7 @@ class MyDataset:
         self.load_function, self._lf_type = self._extract_load_function(load_function)
 
         self.train_dataset, self.test_dataset = self.__get_datasets()
+        self.sort_train_dataset()  # Make sure that train_dataset is sorted by class.
 
     def get_train_loader(
         self, sampler: Sampler, batch_size: int, num_workers: int, **kwargs
@@ -66,6 +69,9 @@ class MyDataset:
         else:
             raise ValueError(f"Unknown load function type: {self._lf_type}")
         return train_dataset, test_dataset
+
+    def sort_train_dataset(self):
+        self.train_dataset = SortedDataset(self.train_dataset)
 
     @staticmethod
     def _extract_transform(transformations: list[dict]) -> transforms.Compose:
