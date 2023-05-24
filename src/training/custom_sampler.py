@@ -46,6 +46,7 @@ class CustomDistributedSampler(Sampler):
         else:
             indices = self.indices
 
+        # TODO: Track indices for each rank. (should change wandb dir then)
         return iter(indices)
 
     def __len__(self):
