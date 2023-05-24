@@ -41,7 +41,6 @@ class Trainer:
         acc5_sum = 0
         num_batches = len(self.train_loader)
         start_time = time()
-        # TODO: Log label distribution and/or JSD between batch and dataset
         for i, (inputs, labels) in enumerate(self.train_loader):
             inputs, labels = inputs.to(self.device), labels.to(self.device)
             self.optimizer.zero_grad()
