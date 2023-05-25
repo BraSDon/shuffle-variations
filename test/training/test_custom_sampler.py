@@ -5,13 +5,12 @@ import torch
 import torch.distributed as dist
 from torchvision.datasets import CIFAR10
 
-
 sys.path.insert(0, sys.path[0] + "/../../")
 
 from src.main import setup_distributed_training, free_resources
-from src.data.partition import SequentialPartitioner
-from src.util.cases import Case
+from src.util.cases import CaseFactory
 from src.training.custom_sampler import CustomDistributedSampler
+from src.data.sorted_dataset import SortedDataset
 
 
 # NOTE: All tests are skipped (return without testing) if distributed training
@@ -41,7 +40,7 @@ class TestCustomDistributedSampler(unittest.TestCase):
             return
         # Arrange
         dataset = self.train
-        case = Case("asis_seq_local", False, SequentialPartitioner(), True)
+        case = CaseFactory.create_case("asis_seq_local")
         seed = 1234
 
         # Act
@@ -58,7 +57,7 @@ class TestCustomDistributedSampler(unittest.TestCase):
             return
         # Arrange
         dataset = self.train
-        case = Case("asis_seq_local", True, SequentialPartitioner(), True)
+        case = CaseFactory.create_case("asis_seq_local")
         seed = 1234
         sampler = CustomDistributedSampler(dataset, case, seed)
         indices = list(sampler)
@@ -74,7 +73,7 @@ class TestCustomDistributedSampler(unittest.TestCase):
             return
         # Arrange
         dataset = self.train
-        case = Case("asis_seq_noshuffle", False, SequentialPartitioner(), False)
+        case = CaseFactory.create_case("asis_seq_noshuffle")
         seed = 1234
         sampler = CustomDistributedSampler(dataset, case, seed)
         indices = list(sampler)
@@ -90,7 +89,7 @@ class TestCustomDistributedSampler(unittest.TestCase):
             return
         # Arrange
         dataset = self.train
-        case = Case("asis_seq_local", True, SequentialPartitioner(), True)
+        case = CaseFactory.create_case("asis_seq_local")
         seed = 1234
         sampler = CustomDistributedSampler(dataset, case, seed)
 
@@ -104,6 +103,36 @@ class TestCustomDistributedSampler(unittest.TestCase):
 
         # Assert
         self.assertEqual(len(unique_seeds), dist.get_world_size())
+
+    def test_indices(self):
+        if not dist.is_initialized():
+            return
+        # Arrange
+        dataset = SortedDataset(self.train)
+        asis_seq_case = CaseFactory.create_case("asis_seq_local")
+        asis_step_case = CaseFactory.create_case("asis_step_local")
+
+        # Act
+        asis_seq_sampler = CustomDistributedSampler(dataset, asis_seq_case, 1234)
+        asis_step_sampler = CustomDistributedSampler(dataset, asis_step_case, 1234)
+        asis_seq_indices = asis_seq_sampler.indices
+        asis_step_indices = asis_step_sampler.indices
+
+        # Assert
+        # Rank 0 needs to have the first 25% of the indices
+        rank = dist.get_rank()
+        world_size = dist.get_world_size()
+        total_indices = list(range(len(dataset)))
+        self.assertEqual(len(asis_seq_indices), len(dataset) // world_size)
+        self.assertEqual(len(asis_step_indices), len(dataset) // world_size)
+
+        self.assertEqual(total_indices[rank::world_size], asis_step_indices)
+        self.assertEqual(
+            total_indices[
+                rank * len(asis_seq_indices) : (rank + 1) * len(asis_seq_indices)
+            ],
+            asis_seq_indices,
+        )
 
 
 if __name__ == "__main__":

@@ -6,7 +6,7 @@ from src.util.cases import Case, CaseFactory
 class TestCaseFactory(unittest.TestCase):
     def test_create_case_pre_step_local(self):
         # Arrange
-        name = "pre-step-local"
+        name = "pre_step_local"
         expected_case = Case(name, True, StepPartitioner(), True)
 
         # Act
@@ -20,7 +20,7 @@ class TestCaseFactory(unittest.TestCase):
 
     def test_create_case_asis_seq_noshuffle(self):
         # Arrange
-        name = "asis-seq-noshuffle"
+        name = "asis_seq_noshuffle"
         expected_case = Case(name, False, SequentialPartitioner(), False)
 
         # Act
@@ -34,7 +34,7 @@ class TestCaseFactory(unittest.TestCase):
 
     def test_create_case_invalid_name(self):
         # Arrange
-        name = "pre-step"
+        name = "pre_step"
 
         # Act & Assert
         with self.assertRaises(AssertionError):

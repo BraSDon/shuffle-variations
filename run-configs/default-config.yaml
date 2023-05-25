@@ -3,7 +3,7 @@
 group: default
 dataset: CIFAR10
 model: dummy
-case: pre-step-local
+case: pre_step_local
 criterion: cross-entropy
 optimizer: adam
 seed: 1
