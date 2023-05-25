@@ -135,8 +135,11 @@ def set_seeds(seed: int):
 
 def get_samplers(mydataset: MyDataset, case: str, seed: int) -> tuple[Sampler, Sampler]:
     """Returns a sampler based on the case."""
-    case = CaseFactory.create_case(case)
-    train_sampler = CustomDistributedSampler(mydataset.train_dataset, case, seed)
+    if case == "baseline":
+        train_sampler = DistributedSampler(mydataset.train_dataset, seed=seed)
+    else:
+        case = CaseFactory.create_case(case)
+        train_sampler = CustomDistributedSampler(mydataset.train_dataset, case, seed)
     test_sampler = DistributedSampler(mydataset.test_dataset)
     return train_sampler, test_sampler
 
