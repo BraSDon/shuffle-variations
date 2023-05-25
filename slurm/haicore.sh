@@ -14,6 +14,6 @@ module load mpi/openmpi/4.1
 
 source /hkfs/work/workspace_haic/scratch/tz6121-paper/paper/venv/bin/activate
 
-cd ../src/
+cd ..
 
-srun python -u main.py
+srun python -u src/main.py
