@@ -15,8 +15,15 @@ from src.data.sorted_dataset import SortedDataset
 class MyDataset:
     """Class for handling datasets and returning dataloaders."""
 
-    def __init__(self, name: str, path: str, train_transformations: list[dict], test_transformations: list[dict],
-                 load_function: dict, num_classes: int):
+    def __init__(
+        self,
+        name: str,
+        path: str,
+        train_transformations: list[dict],
+        test_transformations: list[dict],
+        load_function: dict,
+        num_classes: int,
+    ):
         self.name = name
         self.path = path
         self.num_classes = num_classes
@@ -89,6 +96,8 @@ class MyDataset:
 
     @staticmethod
     def _extract_transform(transformations: list[dict]) -> transforms.Compose:
+        if transformations is None:
+            return None
         transform_list = []
         for t in transformations:
             transform_class = getattr(transforms, t["name"])
@@ -127,10 +136,10 @@ class MyDataset:
             print(f"[GPU {global_rank}] Done copying dataset in {time() - start:.2f}s.")
         dist.barrier()
         return dst_dir
-    
+
     def copy_files(self, src_dir, dst_dir, max_workers=32):
         os.makedirs(dst_dir, exist_ok=True)
-        
+
         # Get a list of all files and directories in the source directory
         for dirpath, dirnames, filenames in os.walk(src_dir):
             # Create the corresponding subdirectories in the destination directory
@@ -140,12 +149,17 @@ class MyDataset:
             # Create a ThreadPoolExecutor with a max of 4 worker threads
             with ThreadPoolExecutor(max_workers=max_workers) as executor:
                 # Submit the copy_file function for each file in the list
-                futures = [executor.submit(self.copy_file, os.path.join(dirpath, f), os.path.join(subdir, f)) for f in
-                           filenames]
+                futures = [
+                    executor.submit(
+                        self.copy_file,
+                        os.path.join(dirpath, f),
+                        os.path.join(subdir, f),
+                    )
+                    for f in filenames
+                ]
                 for future in as_completed(futures):
                     future.result()
 
     @staticmethod
     def copy_file(src, dst):
         shutil.copy2(src, dst)
-
