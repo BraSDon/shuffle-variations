@@ -12,7 +12,9 @@ from src.util.helper import print0
 
 
 class Trainer:
-    def __init__(self, model, optimizer, criterion, train_loader, test_loader, system, my_dataset):
+    def __init__(
+        self, model, optimizer, criterion, train_loader, test_loader, system, my_dataset
+    ):
         self.optimizer = optimizer
         self.criterion = criterion
         self.train_loader = train_loader
@@ -139,25 +141,42 @@ class Trainer:
                 res.append(correct_k.mul_(100.0 / batch_size).item())
             return res
 
-    def log_minibatch(self, local_minibatch_labels: torch.tensor, batch: int, train) -> None:
+    def log_minibatch(
+        self, local_minibatch_labels: torch.tensor, batch: int, train
+    ) -> None:
         prefix = "train" if train else "test"
 
         # TODO: Fix logging KL and frequencies!!!
         # Calculate relative frequency of each label in the minibatch
-        label_counts = torch.bincount(local_minibatch_labels, minlength=self.my_dataset.num_classes)
+        label_counts = torch.bincount(
+            local_minibatch_labels, minlength=self.my_dataset.num_classes
+        )
         label_frequencies = label_counts.float() / label_counts.sum()
+        label_frequencies = label_frequencies.cpu()
         ref_freq = self.my_dataset.train_label_frequencies
         kl = float(kl_div(label_frequencies, ref_freq))
         js = jensenshannon(label_frequencies, ref_freq)
-        wandb.log({f"{prefix}_batch": batch, f"{prefix}_local_label_frequencies": label_frequencies.tolist(),
-                   f"{prefix}_local_kl_div": kl, f"{prefix}_local_js_div": js})
+        wandb.log(
+            {
+                f"{prefix}_batch": batch,
+                f"{prefix}_local_label_frequencies": label_frequencies.tolist(),
+                f"{prefix}_local_kl_div": kl,
+                f"{prefix}_local_js_div": js,
+            }
+        )
 
         # Gather all label frequencies from all processes
         label_frequencies = label_frequencies.to(self.device)
         dist.all_reduce(label_frequencies, op=dist.ReduceOp.SUM)
         label_frequencies /= dist.get_world_size()
+        label_frequencies = label_frequencies.cpu()
         kl = float(kl_div(label_frequencies, ref_freq))
         js = jensenshannon(label_frequencies, ref_freq)
-        wandb.log({f"{prefix}_batch": batch, f"{prefix}_global_label_frequencies": label_frequencies.tolist(),
-                   f"{prefix}_global_kl_div": kl, f"{prefix}_global_js_div": js})
-
+        wandb.log(
+            {
+                f"{prefix}_batch": batch,
+                f"{prefix}_global_label_frequencies": label_frequencies.tolist(),
+                f"{prefix}_global_kl_div": kl,
+                f"{prefix}_global_js_div": js,
+            }
+        )
