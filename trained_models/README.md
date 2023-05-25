@@ -1,0 +1,1 @@
+Folder to store all trained models. They are all uploaded to weights & biases, so no need to store them in the repository or move them around.

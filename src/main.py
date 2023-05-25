@@ -29,7 +29,7 @@ def main():
     )
 
     # 2a. Setup logging
-    setup_logging(run_config)
+    run = setup_logging(run_config)
 
     # 3. Set seed
     set_seeds(run_config["seed"])
@@ -75,7 +75,8 @@ def main():
     # 9. Run training
     trainer.train(run_config["max-epochs"])
 
-    # TODO: 10. Store results
+    # 10. Store model to wandb
+    store_model_to_wandb(run, model, run_config)
 
     # 11. Free resources
     free_resources()
@@ -114,8 +115,8 @@ def setup_distributed_training(system: str, port: str):
     dist.init_process_group("nccl", rank=rank, world_size=world_size)
 
 
-def setup_logging(run_config):
-    wandb.init(
+def setup_logging(run_config) -> wandb.run:
+    return wandb.init(
         project="paper",
         group=run_config["group"],
         name=f"{run_config['case']}-rank-{dist.get_rank()}",
@@ -207,6 +208,20 @@ def sanity_check(device):
     print(f"Rank: {rank}, world_size: {world_size}")
     dist.barrier()
     print(f"Running on {device}")
+
+
+def store_model_to_wandb(run, model: torch.nn.Module, run_config: dict):
+    if dist.get_rank() != 0:
+        return
+    filename = (
+        f"{run_config['model']}_{run_config['dataset']}_"
+        f"{run_config['case']}_{run_config['seed']}.pth"
+    )
+    path = "trained_models/" + filename
+    torch.save(model.state_dict(), path)
+    artifact = wandb.Artifact("model", type="model")
+    artifact.add_file(path)
+    run.log_artifact(artifact)
 
 
 def free_resources():
