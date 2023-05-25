@@ -128,7 +128,7 @@ class Trainer:
 
     def calculate_accuracy(self, outputs, labels, topk=(1, 5)):
         with torch.no_grad():
-            maxk = max(topk)
+            maxk = min(max(topk), self.my_dataset.num_classes)
             batch_size = labels.size(0)
 
             _, pred = outputs.topk(maxk, 1, True, True)
