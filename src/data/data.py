@@ -6,6 +6,7 @@ from time import time
 
 import torch
 import torch.distributed as dist
+import wandb
 from torch.utils.data import DataLoader, Dataset, Sampler
 from torchvision.transforms import transforms
 
@@ -83,7 +84,9 @@ class MyDataset:
         return train_dataset, test_dataset
 
     def sort_train_dataset(self):
+        start = time()
         self.train_dataset = SortedDataset(self.train_dataset)
+        wandb.log({"train_dataset_sort_time": time() - start})
 
     def _get_train_label_frequencies(self):
         # Calculate label frequency for train dataset.
@@ -134,6 +137,7 @@ class MyDataset:
             print(f"[GPU {global_rank}] Copying dataset to {dst_dir}...")
             self.copy_files(src_dir, dst_dir)
             print(f"[GPU {global_rank}] Done copying dataset in {time() - start:.2f}s.")
+            wandb.log({"dataset_copy_time": time() - start})
         dist.barrier()
         return dst_dir
 
