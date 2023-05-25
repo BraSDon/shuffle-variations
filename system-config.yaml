@@ -13,8 +13,12 @@ ddp:
 models:
   dummy:
     torch.hub.load:
-      repo: dummy
-      model: dummy
+      repo:
+      model:
+  ann:
+    torch.hub.load:
+      repo:
+      model:
   alexnet:
     torch.hub.load:
       repo: pytorch/vision:v0.10.0
@@ -91,3 +95,11 @@ datasets:
           kwargs:
             mean: [0.485, 0.456, 0.406]
             std: [0.229, 0.224, 0.225]
+
+  SUSY:
+    path: ./data
+    num-classes: 2
+    load-function:
+      module: src.data
+      type: built-in
+      name: SUSYDataset

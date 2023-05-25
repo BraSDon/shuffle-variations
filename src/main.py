@@ -12,7 +12,7 @@ import torch.distributed as dist
 
 sys.path.insert(0, sys.path[0] + "/../")
 
-from src.models.models import DummyModel
+from src.models.models import DummyModel, ANN
 from src.training.train import Trainer
 from src.data.data import MyDataset
 from src.training.custom_sampler import CustomDistributedSampler
@@ -62,9 +62,15 @@ def main():
     sanity_check(system_config["system"])
 
     # 8. Setup trainer
-    trainer = Trainer(model=model, optimizer=optimizer, criterion=criterion, train_loader=train_loader,
-                      test_loader=test_loader, system=system_config["system"],
-                      my_dataset=my_dataset)
+    trainer = Trainer(
+        model=model,
+        optimizer=optimizer,
+        criterion=criterion,
+        train_loader=train_loader,
+        test_loader=test_loader,
+        system=system_config["system"],
+        my_dataset=my_dataset,
+    )
 
     # 9. Run training
     trainer.train(run_config["max-epochs"])
@@ -142,8 +148,16 @@ def get_dataset(system_config: dict, run_config: dict) -> MyDataset:
     ]
     test_transformations = system_config["datasets"][dataset_name]["transforms"]["test"]
     load_function = system_config["datasets"][dataset_name]["load-function"]
+    num_classes = system_config["datasets"][dataset_name]["num-classes"]
 
-    return MyDataset(dataset_name, path, train_transformations, test_transformations, load_function, 10)
+    return MyDataset(
+        dataset_name,
+        path,
+        train_transformations,
+        test_transformations,
+        load_function,
+        num_classes,
+    )
 
 
 def get_model_by_name(system_config, run_config) -> torch.nn.Module:
@@ -152,8 +166,10 @@ def get_model_by_name(system_config, run_config) -> torch.nn.Module:
     repo = system_config["models"][name]["torch.hub.load"]["repo"]
     model = system_config["models"][name]["torch.hub.load"]["model"]
 
-    if model == "dummy":
+    if name == "dummy":
         return DummyModel()
+    elif name == "ann":
+        return ANN()
     else:
         try:
             return torch.hub.load(repo, model, pretrained=False, trust_repo=True)
