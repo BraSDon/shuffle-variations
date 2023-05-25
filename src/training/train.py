@@ -146,7 +146,6 @@ class Trainer:
     ) -> None:
         prefix = "train" if train else "test"
 
-        # TODO: Fix logging KL and frequencies!!!
         # Calculate relative frequency of each label in the minibatch
         label_counts = torch.bincount(
             local_minibatch_labels, minlength=self.my_dataset.num_classes
@@ -154,7 +153,7 @@ class Trainer:
         label_frequencies = label_counts.float() / label_counts.sum()
         label_frequencies = label_frequencies.cpu()
         ref_freq = self.my_dataset.train_label_frequencies
-        kl = float(kl_div(label_frequencies, ref_freq))
+        kl = sum(kl_div(label_frequencies, ref_freq))
         js = jensenshannon(label_frequencies, ref_freq)
         wandb.log(
             {
@@ -170,7 +169,7 @@ class Trainer:
         dist.all_reduce(label_frequencies, op=dist.ReduceOp.SUM)
         label_frequencies /= dist.get_world_size()
         label_frequencies = label_frequencies.cpu()
-        kl = float(kl_div(label_frequencies, ref_freq))
+        kl = sum(kl_div(label_frequencies, ref_freq))
         js = jensenshannon(label_frequencies, ref_freq)
         wandb.log(
             {
