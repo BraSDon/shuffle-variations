@@ -33,7 +33,6 @@ class CustomDistributedSampler(Sampler):
             indices = list(range(len(self.dataset)))
 
         # step-wise vs. sequential partitioning
-        # TODO: Log divergence metrics regarding the partitioning.
         self.indices = self.case.partitioner.partition(self.world_size, indices)[
             self.rank
         ]

@@ -42,6 +42,7 @@ class Trainer:
         acc1_sum = 0
         acc5_sum = 0
         num_batches = len(self.train_loader)
+        label_frequencies = torch.zeros(self.my_dataset.num_classes)
         start_time = time()
         for i, (inputs, labels) in enumerate(self.train_loader):
             inputs, labels = inputs.to(self.device), labels.to(self.device)
@@ -55,10 +56,28 @@ class Trainer:
             top1, top5 = self.calculate_accuracy(outputs, labels)
             acc1_sum += top1
             acc5_sum += top5
+            label_frequencies += torch.bincount(
+                labels, minlength=self.my_dataset.num_classes
+            )
 
             self.log_minibatch(labels, i, train=True)
 
         required_time = time() - start_time
+
+        # Log the kl/js divergence of partition to full dataset.
+        # Only required to be logged once
+        if epoch == 0:
+            label_frequencies = label_frequencies.float() / label_frequencies.sum()
+            label_frequencies = label_frequencies.cpu()
+            ref_freq = self.my_dataset.train_label_frequencies
+            kl = sum(kl_div(label_frequencies, ref_freq))
+            js = jensenshannon(label_frequencies, ref_freq)
+            wandb.log(
+                {
+                    f"kl_div_rank{dist.get_rank()}": kl,
+                    f"js_div_rank{dist.get_rank()}": js,
+                }
+            )
         self.log_statistics(
             acc1_sum, acc5_sum, epoch, loss_sum, num_batches, required_time, train=True
         )
