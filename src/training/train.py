@@ -4,6 +4,7 @@ import wandb
 from scipy.spatial.distance import jensenshannon
 from scipy.special import kl_div
 
+import torchmetrics
 import torch
 import torch.distributed as dist
 from torch.nn.parallel import DistributedDataParallel as DDP
@@ -41,6 +42,8 @@ class Trainer:
         loss_sum = 0
         acc1_sum = 0
         acc5_sum = 0
+        mcc_sum = 0
+        num_classes = self.my_dataset.num_classes
         num_batches = len(self.train_loader)
         label_frequencies = torch.zeros(self.my_dataset.num_classes)
         start_time = time()
@@ -53,9 +56,15 @@ class Trainer:
             self.optimizer.step()
 
             loss_sum += loss.item()
-            top1, top5 = self.calculate_accuracy(outputs, labels)
-            acc1_sum += top1
-            acc5_sum += top5
+            acc1_sum += torchmetrics.functional.accuracy(
+                outputs, labels, "multiclass", num_classes=num_classes
+            )
+            acc5_sum += torchmetrics.functional.accuracy(
+                outputs, labels, "multiclass", num_classes=num_classes, top_k=5
+            )
+            mcc_sum += torchmetrics.functional.matthews_corrcoef(
+                outputs, labels, num_classes=num_classes
+            )
             label_frequencies += torch.bincount(
                 labels, minlength=self.my_dataset.num_classes
             )
@@ -79,7 +88,14 @@ class Trainer:
                 }
             )
         self.log_statistics(
-            acc1_sum, acc5_sum, epoch, loss_sum, num_batches, required_time, train=True
+            acc1_sum,
+            acc5_sum,
+            mcc_sum,
+            epoch,
+            loss_sum,
+            num_batches,
+            required_time,
+            train=True,
         )
 
         print0(f"Epoch {epoch} finished")
@@ -90,6 +106,8 @@ class Trainer:
         loss_sum = 0
         acc1_sum = 0
         acc5_sum = 0
+        mcc_sum = 0
+        num_classes = self.my_dataset.num_classes
         num_batches = len(self.test_loader)
         start_time = time()
         with torch.no_grad():
@@ -99,23 +117,45 @@ class Trainer:
                 loss = self.criterion(outputs, labels)
 
                 loss_sum += loss.item()
-                top1, top5 = self.calculate_accuracy(outputs, labels)
-                acc1_sum += top1
-                acc5_sum += top5
+                acc1_sum += torchmetrics.functional.accuracy(
+                    outputs, labels, "multiclass", num_classes=num_classes
+                )
+                acc5_sum += torchmetrics.functional.accuracy(
+                    outputs, labels, "multiclass", num_classes=num_classes, top_k=5
+                )
+                mcc_sum += torchmetrics.functional.matthews_corrcoef(
+                    outputs, labels, num_classes=num_classes
+                )
 
                 self.log_minibatch(labels, i, train=False)
 
         required_time = time() - start_time
         self.log_statistics(
-            acc1_sum, acc5_sum, epoch, loss_sum, num_batches, required_time, train=False
+            acc1_sum,
+            acc5_sum,
+            mcc_sum,
+            epoch,
+            loss_sum,
+            num_batches,
+            required_time,
+            train=False,
         )
 
     def log_statistics(
-        self, acc1_sum, acc5_sum, epoch, loss_sum, num_batches, required_time, train
+        self,
+        acc1_sum,
+        acc5_sum,
+        mcc_sum,
+        epoch,
+        loss_sum,
+        num_batches,
+        required_time,
+        train,
     ):
         loss_avg_local = loss_sum / num_batches
         acc1_avg_local = acc1_sum / num_batches
         acc5_avg_local = acc5_sum / num_batches
+        mcc_avg_local = mcc_sum / num_batches
 
         prefix = "train" if train else "test"
 
@@ -126,17 +166,20 @@ class Trainer:
                 f"{prefix}_loss": loss_avg_local,
                 f"{prefix}_acc1": acc1_avg_local,
                 f"{prefix}_acc5": acc5_avg_local,
+                f"{prefix}_mcc": mcc_avg_local,
             }
         )
         loss_avg = self.average_statistic(loss_avg_local)
         acc1_avg = self.average_statistic(acc1_avg_local)
         acc5_avg = self.average_statistic(acc5_avg_local)
+        mcc_avg = self.average_statistic(mcc_avg_local)
         wandb.log(
             {
                 "epoch": epoch,
                 f"{prefix}_loss_avg": loss_avg,
                 f"{prefix}_acc1_avg": acc1_avg,
                 f"{prefix}_acc5_avg": acc5_avg,
+                f"{prefix}_mcc_avg": mcc_avg,
             }
         )
 

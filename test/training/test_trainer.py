@@ -2,6 +2,7 @@ import sys
 import unittest
 from unittest.mock import MagicMock
 
+import torchmetrics
 import torch
 import torch.distributed as dist
 from torch import nn
@@ -36,8 +37,15 @@ class TestTrainer(unittest.TestCase):
         self.my_dataset.num_classes = 10
 
         # Create the Trainer instance
-        self.trainer = Trainer(self.model, self.optimizer, self.criterion, self.train_loader, self.test_loader,
-                               self.system, self.my_dataset)
+        self.trainer = Trainer(
+            self.model,
+            self.optimizer,
+            self.criterion,
+            self.train_loader,
+            self.test_loader,
+            self.system,
+            self.my_dataset,
+        )
 
     def test_init(self):
         if not dist.is_initialized():
@@ -76,17 +84,54 @@ class TestTrainer(unittest.TestCase):
         labels_top5_100 = torch.tensor([4, 4])
         labels_top5_50 = torch.tensor([4, 5])
 
+        num_classes = 10
         self.assertEqual(
-            self.trainer.calculate_accuracy(outputs, labels_top1_100), [100.0, 100.0]
+            torchmetrics.functional.accuracy(
+                outputs, labels_top1_100, "multiclass", num_classes=num_classes
+            ).item(),
+            1.0,
         )
         self.assertEqual(
-            self.trainer.calculate_accuracy(outputs, labels_top1_50), [50.0, 100.0]
+            torchmetrics.functional.accuracy(
+                outputs, labels_top1_100, "multiclass", top_k=5, num_classes=num_classes
+            ).item(),
+            1.0,
         )
         self.assertEqual(
-            self.trainer.calculate_accuracy(outputs, labels_top5_100), [0.0, 100.0]
+            torchmetrics.functional.accuracy(
+                outputs, labels_top1_50, "multiclass", num_classes=num_classes
+            ).item(),
+            0.5,
         )
         self.assertEqual(
-            self.trainer.calculate_accuracy(outputs, labels_top5_50), [0.0, 50.0]
+            torchmetrics.functional.accuracy(
+                outputs, labels_top1_50, "multiclass", top_k=5, num_classes=num_classes
+            ).item(),
+            1.0,
+        )
+        self.assertEqual(
+            torchmetrics.functional.accuracy(
+                outputs, labels_top5_100, "multiclass", num_classes=num_classes
+            ).item(),
+            0.0,
+        )
+        self.assertEqual(
+            torchmetrics.functional.accuracy(
+                outputs, labels_top5_100, "multiclass", top_k=5, num_classes=num_classes
+            ).item(),
+            1.0,
+        )
+        self.assertEqual(
+            torchmetrics.functional.accuracy(
+                outputs, labels_top5_50, "multiclass", num_classes=num_classes
+            ).item(),
+            0.0,
+        )
+        self.assertEqual(
+            torchmetrics.functional.accuracy(
+                outputs, labels_top5_50, "multiclass", top_k=5, num_classes=num_classes
+            ).item(),
+            0.5,
         )
 
 
