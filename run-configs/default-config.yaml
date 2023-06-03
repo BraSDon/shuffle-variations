@@ -6,7 +6,7 @@ criterion: cross-entropy
 optimizer: adam
 seed: 1
 num-workers: 4
-batch-size: 64
+batch-size: 32
 learning-rate: 0.1
 momentum: 0.9
 weight-decay: 0.0005
