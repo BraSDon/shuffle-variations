@@ -1,10 +1,15 @@
 import torch
 from torch.utils.data import Dataset
 
+import wandb
+from time import time
+
 
 def sort_indices(dataset):
+    start = time()
     labels = dataset.targets
     sorted_idx = torch.argsort(torch.tensor(labels))
+    wandb.log({"time_to_sort_dataset": time() - start})
     return sorted_idx
 
 
