@@ -2,6 +2,8 @@ import torch
 import torch.distributed as dist
 from torch.utils.data import Sampler, Dataset, Subset
 
+import wandb
+from time import time
 from src.util.cases import Case
 
 
@@ -40,9 +42,11 @@ class CustomDistributedSampler(Sampler):
     def __iter__(self):
         # local vs. no-shuffle
         if self.case.shuffle:
+            start = time()
             indices = torch.randperm(
                 len(self.dataset), generator=self.generator
             ).tolist()
+            wandb.log({"epoch_shuffle_time": time() - start})
         else:
             indices = self.indices
 
