@@ -182,6 +182,12 @@ def get_model_by_name(system_config, run_config) -> torch.nn.Module:
         return ANN()
     else:
         try:
+            # Downstream code leads to an error when executed in parallel
+            # for the first time, due to possible race conditions...
+            # File "torch/hub.py", in _get_cache_or_reload:
+            #     hub_dir = get_dir()
+            #     if not os.path.exists(hub_dir):
+            #         os.makedirs(hub_dir)
             return torch.hub.load(
                 repo, model, pretrained=False, trust_repo=True, num_classes=num_classes
             )
