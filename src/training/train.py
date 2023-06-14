@@ -39,10 +39,10 @@ class Trainer:
     def run_epoch(self, epoch: int):
         self.model.train()
 
-        loss_sum = 0
-        acc1_sum = 0
-        acc5_sum = 0
-        mcc_sum = 0
+        loss_sum = 0.0
+        acc1_sum = 0.0
+        acc5_sum = 0.0
+        mcc_sum = 0.0
         num_classes = self.my_dataset.num_classes
         num_batches = len(self.train_loader)
         label_frequencies = torch.zeros(self.my_dataset.num_classes)
@@ -63,7 +63,7 @@ class Trainer:
                 outputs, labels, "multiclass", num_classes=num_classes, top_k=5
             )
             mcc_sum += torchmetrics.functional.matthews_corrcoef(
-                outputs, labels, num_classes=num_classes
+                outputs, labels, "multiclass", num_classes=num_classes
             )
             label_frequencies += torch.bincount(
                 labels, minlength=self.my_dataset.num_classes
@@ -103,10 +103,10 @@ class Trainer:
     def test(self, epoch: int):
         self.model.eval()
 
-        loss_sum = 0
-        acc1_sum = 0
-        acc5_sum = 0
-        mcc_sum = 0
+        loss_sum = 0.0
+        acc1_sum = 0.0
+        acc5_sum = 0.0
+        mcc_sum = 0.0
         num_classes = self.my_dataset.num_classes
         num_batches = len(self.test_loader)
         start_time = time()
@@ -124,7 +124,7 @@ class Trainer:
                     outputs, labels, "multiclass", num_classes=num_classes, top_k=5
                 )
                 mcc_sum += torchmetrics.functional.matthews_corrcoef(
-                    outputs, labels, num_classes=num_classes
+                    outputs, labels, "multiclass", num_classes=num_classes
                 )
 
                 self.log_minibatch(labels, i, train=False)
