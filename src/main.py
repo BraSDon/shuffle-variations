@@ -174,6 +174,7 @@ def get_model_by_name(system_config, run_config) -> torch.nn.Module:
     name = run_config["model"]
     repo = system_config["models"][name]["torch.hub.load"]["repo"]
     model = system_config["models"][name]["torch.hub.load"]["model"]
+    num_classes = system_config["datasets"][run_config["dataset"]]["num-classes"]
 
     if name == "dummy":
         return DummyModel()
@@ -181,7 +182,9 @@ def get_model_by_name(system_config, run_config) -> torch.nn.Module:
         return ANN()
     else:
         try:
-            return torch.hub.load(repo, model, pretrained=False, trust_repo=True)
+            return torch.hub.load(
+                repo, model, pretrained=False, trust_repo=True, num_classes=num_classes
+            )
         except:
             raise NotImplementedError(
                 f"An error occurred while loading {model}" f" from torch.hub."
