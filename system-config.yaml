@@ -31,10 +31,10 @@ models:
     torch.hub.load:
       repo: pytorch/vision:v0.10.0
       model: resnet50
-  nvidia_efficientnet_b0:
+  mobilenet_v3_large:
     torch.hub.load:
-      repo: NVIDIA/DeepLearningExamples:torchhub
-      model: nvidia_efficientnet_b0
+      repo: pytorch/vision:v0.10.0
+      model: mobilenet_v3_large
   deit-base:
     torch.hub.load:
       repo: facebookresearch/deit:main
