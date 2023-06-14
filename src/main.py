@@ -2,6 +2,7 @@ import argparse
 import os
 import random
 import sys
+from time import sleep
 
 import wandb
 import yaml
@@ -175,6 +176,9 @@ def get_model_by_name(system_config, run_config) -> torch.nn.Module:
     repo = system_config["models"][name]["torch.hub.load"]["repo"]
     model = system_config["models"][name]["torch.hub.load"]["model"]
     num_classes = system_config["datasets"][run_config["dataset"]]["num-classes"]
+    local_rank = dist.get_rank()
+    if system_config["system"] == "server":
+        local_rank = local_rank % int(os.environ["SLURM_GPUS_ON_NODE"])
 
     if name == "dummy":
         return DummyModel()
@@ -188,6 +192,8 @@ def get_model_by_name(system_config, run_config) -> torch.nn.Module:
             #     hub_dir = get_dir()
             #     if not os.path.exists(hub_dir):
             #         os.makedirs(hub_dir)
+            if local_rank != 0:
+                sleep(5)
             return torch.hub.load(
                 repo, model, pretrained=False, trust_repo=True, num_classes=num_classes
             )
