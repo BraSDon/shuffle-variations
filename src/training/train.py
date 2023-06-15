@@ -45,7 +45,7 @@ class Trainer:
         mcc_sum = 0.0
         num_classes = self.my_dataset.num_classes
         num_batches = len(self.train_loader)
-        label_frequencies = torch.zeros(self.my_dataset.num_classes)
+        label_frequencies = torch.zeros(self.my_dataset.num_classes).to(self.device)
         start_time = time()
         for i, (inputs, labels) in enumerate(self.train_loader):
             inputs, labels = inputs.to(self.device), labels.to(self.device)
