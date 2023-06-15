@@ -22,7 +22,7 @@ from src.util.cases import CaseFactory
 
 def main():
     # 1. Parse arguments
-    system_config, run_config, case = parse_configs()
+    system_config, run_config = parse_configs()
 
     # 2. Setup distributed training (if applicable)
     setup_distributed_training(
@@ -37,7 +37,9 @@ def main():
 
     # 4. Setup dataloaders
     my_dataset = get_dataset(system_config, run_config)
-    train_sampler, test_sampler = get_samplers(my_dataset, case, run_config["seed"])
+    train_sampler, test_sampler = get_samplers(
+        my_dataset, run_config["case"], run_config["seed"]
+    )
     batch_size = run_config["batch-size"]
     num_workers = run_config["num-workers"]
     train_loader = my_dataset.get_train_loader(train_sampler, batch_size, num_workers)
@@ -81,7 +83,7 @@ def main():
     free_resources()
 
 
-def parse_configs() -> tuple[dict, dict, str]:
+def parse_configs() -> tuple[dict, dict]:
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--config_path", type=str, default="run-configs/default-config.yaml"
@@ -96,13 +98,12 @@ def parse_configs() -> tuple[dict, dict, str]:
     with open("system-config.yaml", "r") as f:
         system_config = yaml.safe_load(f)
 
-    # if case is run_config overwrite args.case
-    if "case" in run_config:
-        case = run_config["case"]
-    else:
-        case = args.case
+    # Relevant for run-all.sh, as the case is passed as an argument.
+    # Furthermore, this ensures that the case is being logged to wandb.
+    if "case" not in run_config:
+        run_config["case"] = args.case
 
-    return system_config, run_config, case
+    return system_config, run_config
 
 
 def setup_distributed_training(system: str, port: str):
