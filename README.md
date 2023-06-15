@@ -74,3 +74,8 @@ The load-function specifies how a dataset can be loaded
 Where the type specifies which arguments are passed to the function 
 (train=(True | False) is set only when using built-in datasets).
 The transforms are applied to the dataset in the given order.
+
+## Potential Pitfalls/Errors
+- When using torch.hub.load() the repo might get downloaded but not unzipped. 
+  This will result in a FileNotFoundError of the hubconf.py file. 
+  To fix this, manually unzip the downloaded file and make sure it has the correct name (e.g. pytorch_vision_v0.10.0).
