@@ -5,7 +5,7 @@
 
 # NOTE: Local execution must be performed using the following command:
 # torchrun --nproc_per_node=4 main.py
-system: local # (server | local)
+system: server # (server | local)
 
 ddp:
   port: 29500 # port for ddp setup
@@ -44,7 +44,7 @@ models:
 # Describe datasets that are available
 datasets:
   ImageNet:
-    path: /home/datasets/imagenet
+    path: /hkfs/home/dataset/datasets/imagenet-2012/original/imagenet-raw/ILSVRC/Data/CLS-LOC
     num-classes: 1000
     load-function:
       module: torchvision.datasets
@@ -78,7 +78,7 @@ datasets:
             std: [0.229, 0.224, 0.225]
 
   CIFAR10:
-    path: ./data
+    path: /hkfs/home/dataset/datasets/CIFAR10
     num-classes: 10
     load-function:
       module: torchvision.datasets
@@ -86,6 +86,12 @@ datasets:
       name: CIFAR10
     transforms:
       train:
+        - name: Resize
+          kwargs:
+            size: 256
+        - name: CenterCrop
+          kwargs:
+            size: 224
         - name: ToTensor
           kwargs: {}
         - name: Normalize
@@ -93,6 +99,47 @@ datasets:
             mean: [0.485, 0.456, 0.406]
             std: [0.229, 0.224, 0.225]
       test:
+        - name: Resize
+          kwargs:
+            size: 256
+        - name: CenterCrop
+          kwargs:
+            size: 224
+        - name: ToTensor
+          kwargs: {}
+        - name: Normalize
+          kwargs:
+            mean: [0.485, 0.456, 0.406]
+            std: [0.229, 0.224, 0.225]
+
+  CIFAR100:
+    path: /hkfs/home/dataset/datasets/CIFAR100/train
+    num-classes: 100
+    load-function:
+      module: torchvision.datasets
+      type: built-in
+      name: CIFAR100
+    transforms:
+      train:
+        - name: Resize
+          kwargs:
+            size: 256
+        - name: CenterCrop
+          kwargs:
+            size: 224
+        - name: ToTensor
+          kwargs: {}
+        - name: Normalize
+          kwargs:
+            mean: [0.485, 0.456, 0.406]
+            std: [0.229, 0.224, 0.225]
+      test:
+        - name: Resize
+          kwargs:
+            size: 256
+        - name: CenterCrop
+          kwargs:
+            size: 224
         - name: ToTensor
           kwargs: {}
         - name: Normalize
