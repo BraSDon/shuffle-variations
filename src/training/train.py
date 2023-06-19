@@ -143,7 +143,7 @@ class Trainer:
 
     @staticmethod
     def update_sums(
-        self, acc1_sum, acc5_sum, labels, loss, loss_sum, mcc_sum, num_classes, outputs
+        acc1_sum, acc5_sum, labels, loss, loss_sum, mcc_sum, num_classes, outputs
     ):
         loss_sum += loss.item()
         acc1_sum += torchmetrics.functional.accuracy(
