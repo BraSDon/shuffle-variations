@@ -55,15 +55,15 @@ class Trainer:
             loss.backward()
             self.optimizer.step()
 
-            loss_sum += loss.item()
-            acc1_sum += torchmetrics.functional.accuracy(
-                outputs, labels, "multiclass", num_classes=num_classes
-            )
-            acc5_sum += torchmetrics.functional.accuracy(
-                outputs, labels, "multiclass", num_classes=num_classes, top_k=5
-            )
-            mcc_sum += torchmetrics.functional.matthews_corrcoef(
-                outputs, labels, "multiclass", num_classes=num_classes
+            acc1_sum, acc5_sum, loss_sum, mcc_sum = self.update_sums(
+                acc1_sum,
+                acc5_sum,
+                labels,
+                loss,
+                loss_sum,
+                mcc_sum,
+                num_classes,
+                outputs,
             )
             label_frequencies += torch.bincount(
                 labels, minlength=self.my_dataset.num_classes
@@ -116,15 +116,15 @@ class Trainer:
                 outputs = self.model(inputs)
                 loss = self.criterion(outputs, labels)
 
-                loss_sum += loss.item()
-                acc1_sum += torchmetrics.functional.accuracy(
-                    outputs, labels, "multiclass", num_classes=num_classes
-                )
-                acc5_sum += torchmetrics.functional.accuracy(
-                    outputs, labels, "multiclass", num_classes=num_classes, top_k=5
-                )
-                mcc_sum += torchmetrics.functional.matthews_corrcoef(
-                    outputs, labels, "multiclass", num_classes=num_classes
+                acc1_sum, acc5_sum, loss_sum, mcc_sum = self.update_sums(
+                    acc1_sum,
+                    acc5_sum,
+                    labels,
+                    loss,
+                    loss_sum,
+                    mcc_sum,
+                    num_classes,
+                    outputs,
                 )
 
                 self.log_minibatch(labels, i, train=False)
@@ -140,6 +140,26 @@ class Trainer:
             required_time,
             train=False,
         )
+
+    @staticmethod
+    def update_sums(
+        self, acc1_sum, acc5_sum, labels, loss, loss_sum, mcc_sum, num_classes, outputs
+    ):
+        loss_sum += loss.item()
+        acc1_sum += torchmetrics.functional.accuracy(
+            outputs, labels, "multiclass", num_classes=num_classes
+        )
+        acc5_sum += torchmetrics.functional.accuracy(
+            outputs,
+            labels,
+            "multiclass",
+            num_classes=num_classes,
+            top_k=min(5, num_classes),
+        )
+        mcc_sum += torchmetrics.functional.matthews_corrcoef(
+            outputs, labels, "multiclass", num_classes=num_classes
+        )
+        return acc1_sum, acc5_sum, loss_sum, mcc_sum
 
     def log_statistics(
         self,
