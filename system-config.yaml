@@ -148,9 +148,12 @@ datasets:
             std: [0.229, 0.224, 0.225]
 
   SUSY:
-    path: ./data
+    path: /hkfs/home/dataset/datasets/susy
     num-classes: 2
     load-function:
-      module: src.data
+      module: src.data.datasets
       type: built-in
       name: SUSYDataset
+    transforms:
+      train:
+      test:
