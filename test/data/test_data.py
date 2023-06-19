@@ -1,5 +1,5 @@
 import unittest
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 from torch.utils.data import DataLoader
 from torchvision import transforms
 from torchvision.datasets import CIFAR10
@@ -20,11 +20,22 @@ class TestMyDataset(unittest.TestCase):
         train_transformations = [
             {"name": "ToTensor", "kwargs": {}},
         ]
-        dataset = MyDataset("CIFAR10", self.data_path, train_transformations, [], {
-            "module": "torchvision.datasets.cifar",
-            "type": "built-in",
-            "name": "CIFAR10",
-        }, 10)
+        with patch("src.data.data.wandb") as mock_wandb:
+            mock_wandb.log = (
+                MagicMock()
+            )  # Creating a mock of wandb.log() to avoid errors.
+            dataset = MyDataset(
+                "CIFAR10",
+                self.data_path,
+                train_transformations,
+                [],
+                {
+                    "module": "torchvision.datasets.cifar",
+                    "type": "built-in",
+                    "name": "CIFAR10",
+                },
+                10,
+            )
         batch_size = 32
         sampler = MagicMock()
         num_workers = 4
