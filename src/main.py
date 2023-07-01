@@ -39,7 +39,7 @@ def main():
     set_seeds(run_config["seed"])
 
     # 4. Setup dataloaders
-    my_dataset = get_dataset(system_config, run_config)
+    my_dataset = get_dataset(system_config, run_config, device)
     train_sampler, test_sampler = get_samplers(
         my_dataset, run_config["case"], run_config["seed"]
     )
@@ -157,7 +157,7 @@ def get_samplers(mydataset: MyDataset, case: str, seed: int) -> tuple[Sampler, S
     return train_sampler, test_sampler
 
 
-def get_dataset(system_config: dict, run_config: dict) -> MyDataset:
+def get_dataset(system_config: dict, run_config: dict, device) -> MyDataset:
     dataset_name = run_config["dataset"]
     path = system_config["datasets"][dataset_name]["path"]
     train_transformations = system_config["datasets"][dataset_name]["transforms"][
@@ -167,7 +167,7 @@ def get_dataset(system_config: dict, run_config: dict) -> MyDataset:
     load_function = system_config["datasets"][dataset_name]["load-function"]
     num_classes = system_config["datasets"][dataset_name]["num-classes"]
 
-    return MyDataset(dataset_name, path, train_transformations, test_transformations, load_function, num_classes, 'cpu')
+    return MyDataset(dataset_name, path, train_transformations, test_transformations, load_function, num_classes, device)
 
 
 def get_model_by_name(system_config, run_config) -> torch.nn.Module:
