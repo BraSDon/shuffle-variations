@@ -10,6 +10,10 @@ import wandb
 from torch.utils.data import DataLoader, Dataset, Sampler
 from torchvision.transforms import transforms
 
+# Bug fix: https://discuss.pytorch.org/t/oserror-image-file-is-truncated-150-bytes-not-processed/64445
+from PIL import ImageFile
+ImageFile.LOAD_TRUNCATED_IMAGES = True
+
 from src.data.sorted_dataset import SortedDataset
 
 
