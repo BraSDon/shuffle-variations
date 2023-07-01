@@ -24,18 +24,11 @@ class TestMyDataset(unittest.TestCase):
             mock_wandb.log = (
                 MagicMock()
             )  # Creating a mock of wandb.log() to avoid errors.
-            dataset = MyDataset(
-                "CIFAR10",
-                self.data_path,
-                train_transformations,
-                [],
-                {
-                    "module": "torchvision.datasets.cifar",
-                    "type": "built-in",
-                    "name": "CIFAR10",
-                },
-                10,
-            )
+            dataset = MyDataset("CIFAR10", self.data_path, train_transformations, [], {
+                "module": "torchvision.datasets.cifar",
+                "type": "built-in",
+                "name": "CIFAR10",
+            }, 10, 'cpu')
         batch_size = 32
         sampler = MagicMock()
         num_workers = 4

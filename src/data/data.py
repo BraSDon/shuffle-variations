@@ -20,18 +20,12 @@ from src.data.sorted_dataset import SortedDataset
 class MyDataset:
     """Class for handling datasets and returning dataloaders."""
 
-    def __init__(
-        self,
-        name: str,
-        path: str,
-        train_transformations: list[dict],
-        test_transformations: list[dict],
-        load_function: dict,
-        num_classes: int,
-    ):
+    def __init__(self, name: str, path: str, train_transformations: list[dict], test_transformations: list[dict],
+                 load_function: dict, num_classes: int, device):
         self.name = name
         self.path = path
         self.num_classes = num_classes
+        self.device = device
 
         self.train_transform = self._extract_transform(train_transformations)
         self.test_transform = self._extract_transform(test_transformations)
@@ -106,9 +100,10 @@ class MyDataset:
 
     def _get_train_label_frequencies(self):
         # Calculate label frequency for train dataset.
-        total_freq = torch.zeros(self.num_classes)
-        dl = DataLoader(self.train_dataset, batch_size=32, num_workers=4)
+        total_freq = torch.zeros(self.num_classes, device=self.device)
+        dl = DataLoader(self.train_dataset, batch_size=256, num_workers=4, pin_memory=True)
         for _, labels in dl:
+            labels = labels.to(self.device)
             freq = torch.bincount(labels, minlength=self.num_classes)
             total_freq += freq
         return total_freq / total_freq.sum()

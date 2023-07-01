@@ -13,22 +13,17 @@ from src.util.helper import print0
 
 
 class Trainer:
-    def __init__(
-        self, model, optimizer, criterion, train_loader, test_loader, system, my_dataset
-    ):
+    def __init__(self, model, optimizer, criterion, train_loader, test_loader, system, my_dataset, device):
         self.optimizer = optimizer
         self.criterion = criterion
         self.train_loader = train_loader
         self.test_loader = test_loader
         self.my_dataset = my_dataset
+        self.device = device
 
         if system == "local":
-            self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
             self.model = DDP(model.to(self.device))
         else:
-            gpus_per_node = int(os.environ["SLURM_GPUS_ON_NODE"])
-            global_rank = int(os.environ["SLURM_PROCID"])
-            self.device = global_rank % gpus_per_node
             self.model = DDP(model.to(self.device), device_ids=[self.device])
 
     def train(self, max_epochs: int):

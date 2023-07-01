@@ -29,7 +29,10 @@ def main():
         system_config["system"], str(system_config["ddp"]["port"])
     )
 
-    # 2a. Setup logging
+    # 2a. Get device
+    device = get_device(system_config["system"])
+
+    # 2b. Setup logging
     run = setup_logging(run_config)
 
     # 3. Set seed
@@ -63,15 +66,8 @@ def main():
     sanity_check(system_config["system"])
 
     # 8. Setup trainer
-    trainer = Trainer(
-        model=model,
-        optimizer=optimizer,
-        criterion=criterion,
-        train_loader=train_loader,
-        test_loader=test_loader,
-        system=system_config["system"],
-        my_dataset=my_dataset,
-    )
+    trainer = Trainer(model=model, optimizer=optimizer, criterion=criterion, train_loader=train_loader,
+                      test_loader=test_loader, system=system_config["system"], my_dataset=my_dataset, device=device)
 
     # 9. Run training
     trainer.train(run_config["max-epochs"])
@@ -122,6 +118,16 @@ def setup_distributed_training(system: str, port: str):
     dist.init_process_group("nccl", rank=rank, world_size=world_size)
 
 
+def get_device(system: str):
+    if system == "local":
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    else:
+        gpus_per_node = int(os.environ["SLURM_GPUS_ON_NODE"])
+        global_rank = int(os.environ["SLURM_PROCID"])
+        device = global_rank % gpus_per_node
+    return device
+
+
 def setup_logging(run_config) -> wandb.run:
     return wandb.init(
         project="paper",
@@ -161,14 +167,7 @@ def get_dataset(system_config: dict, run_config: dict) -> MyDataset:
     load_function = system_config["datasets"][dataset_name]["load-function"]
     num_classes = system_config["datasets"][dataset_name]["num-classes"]
 
-    return MyDataset(
-        dataset_name,
-        path,
-        train_transformations,
-        test_transformations,
-        load_function,
-        num_classes,
-    )
+    return MyDataset(dataset_name, path, train_transformations, test_transformations, load_function, num_classes, 'cpu')
 
 
 def get_model_by_name(system_config, run_config) -> torch.nn.Module:

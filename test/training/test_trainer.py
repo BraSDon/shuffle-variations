@@ -37,15 +37,8 @@ class TestTrainer(unittest.TestCase):
         self.my_dataset.num_classes = 10
 
         # Create the Trainer instance
-        self.trainer = Trainer(
-            self.model,
-            self.optimizer,
-            self.criterion,
-            self.train_loader,
-            self.test_loader,
-            self.system,
-            self.my_dataset,
-        )
+        self.trainer = Trainer(self.model, self.optimizer, self.criterion, self.train_loader, self.test_loader,
+                               self.system, self.my_dataset, 'cpu')
 
     def test_init(self):
         if not dist.is_initialized():
