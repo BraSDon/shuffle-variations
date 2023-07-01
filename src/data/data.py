@@ -79,6 +79,18 @@ class MyDataset:
             test_dataset = self.load_function(
                 f"{self.path}/test", transform=self.test_transform
             )
+        # ImageNet is an exception, since the folder structure of test does
+        # not meet the specifications, which is that it should have a subfolder
+        # for each class. Because of time restrictions, we resort to using the
+        # validation set as test set, as also done in official PyTorch examples.
+        # see: https://github.com/pytorch/examples/blob/main/imagenet/main.py#L245
+        elif self._lf_type == "imagenet":
+            train_dataset = self.load_function(
+                f"{self.path}/train", transform=self.train_transform
+            )
+            test_dataset = self.load_function(
+                f"{self.path}/val", transform=self.test_transform
+            )
         else:
             raise ValueError(f"Unknown load function type: {self._lf_type}")
         return train_dataset, test_dataset

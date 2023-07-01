@@ -48,7 +48,7 @@ datasets:
     num-classes: 1000
     load-function:
       module: torchvision.datasets
-      type: generic # (generic | built-in)
+      type: imagenet # (generic | built-in | imagenet)
       name: ImageFolder
     transforms:
       train:
