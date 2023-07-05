@@ -36,8 +36,8 @@ class MyDataset:
         self.path = self.copy_dataset_to_tmp()
 
         self.train_dataset, self.test_dataset = self.__get_datasets()
-        self.sort_train_dataset()  # Make sure that train_dataset is sorted by class.
         self.train_label_frequencies = self._get_train_label_frequencies()
+        self.sort_train_dataset()  # Make sure that train_dataset is sorted by class.
 
     def get_train_loader(
         self, sampler: Sampler, batch_size: int, num_workers: int, **kwargs
@@ -102,19 +102,11 @@ class MyDataset:
     def _get_train_label_frequencies(self):
         # Calculate label frequency for train dataset.
         start = time()
-        sumx = torch.zeros(self.num_classes, device=self.device)
-        # Use DistributedSampler to speed up label frequency calculation.
-        sampler = DistributedSampler(self.train_dataset, shuffle=False)
-        dl = DataLoader(self.train_dataset, batch_size=32, num_workers=4, pin_memory=True, sampler=sampler)
-        for _, labels in dl:
-            labels = labels.to(self.device)
-            count = torch.bincount(labels, minlength=self.num_classes)
-            sumx += count
-        # Get total sum of label frequencies across all nodes.
-        dist.all_reduce(sumx)
+        target_tensor = torch.Tensor(self.train_dataset.targets).type(torch.int32)
+        bincount = torch.bincount(target_tensor, minlength=self.num_classes)
         print(f"Train_label_freq_calc_time: {time() - start}")
         wandb.log({"train_label_freq_calc_time": time() - start})
-        return sumx / sumx.sum()
+        return bincount / bincount.sum()
 
     @staticmethod
     def _extract_transform(transformations: list[dict]) -> transforms.Compose:

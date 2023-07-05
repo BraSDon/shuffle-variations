@@ -79,3 +79,6 @@ The transforms are applied to the dataset in the given order.
 - When using torch.hub.load() the repo might get downloaded but not unzipped. 
   This will result in a FileNotFoundError of the hubconf.py file. 
   To fix this, manually unzip the downloaded file and make sure it has the correct name (e.g. pytorch_vision_v0.10.0).
+- To efficiently sort the dataset and calculate the label frequencies, the script requires the dataset object to have 
+  an attribute called "targets". This should contain the labels of the dataset (as integers) 
+  in the same order as the dataset itself.
