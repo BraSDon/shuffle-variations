@@ -1,5 +1,6 @@
 import sys
 import unittest
+from unittest.mock import MagicMock, patch
 
 import torch
 import torch.distributed as dist
@@ -47,10 +48,14 @@ class TestCustomDistributedSampler(unittest.TestCase):
         sampler = CustomDistributedSampler(dataset, case, seed)
 
         # Assert
-        self.assertEqual(sampler.world_size, dist.get_world_size())
-        self.assertEqual(sampler.rank, dist.get_rank())
-        self.assertEqual(sampler.total_size % sampler.world_size, 0)
-        self.assertEqual(len(sampler.indices), sampler.total_size // sampler.world_size)
+        with patch("src.training.custom_sampler.wandb") as mock_wandb:
+            mock_wandb.log = (
+                MagicMock()
+            )  # Creating a mock of wandb.log() to avoid errors.
+            self.assertEqual(sampler.world_size, dist.get_world_size())
+            self.assertEqual(sampler.rank, dist.get_rank())
+            self.assertEqual(sampler.total_size % sampler.world_size, 0)
+            self.assertEqual(len(sampler.indices), sampler.total_size // sampler.world_size)
 
     def test_iter_shuffle(self):
         if not dist.is_initialized():
@@ -60,13 +65,17 @@ class TestCustomDistributedSampler(unittest.TestCase):
         case = CaseFactory.create_case("asis_seq_local")
         seed = 1234
         sampler = CustomDistributedSampler(dataset, case, seed)
-        indices = list(sampler)
+        with patch("src.training.custom_sampler.wandb") as mock_wandb:
+            mock_wandb.log = (
+                MagicMock()
+            )  # Creating a mock of wandb.log() to avoid errors.
+            indices = list(sampler)
 
-        # Act
-        indices2 = list(sampler)
+            # Act
+            indices2 = list(sampler)
 
-        # Assert
-        self.assertNotEqual(indices, indices2)
+            # Assert
+            self.assertNotEqual(indices, indices2)
 
     def test_iter_no_shuffle(self):
         if not dist.is_initialized():
@@ -76,13 +85,17 @@ class TestCustomDistributedSampler(unittest.TestCase):
         case = CaseFactory.create_case("asis_seq_noshuffle")
         seed = 1234
         sampler = CustomDistributedSampler(dataset, case, seed)
-        indices = list(sampler)
+        with patch("src.training.custom_sampler.wandb") as mock_wandb:
+            mock_wandb.log = (
+                MagicMock()
+            )  # Creating a mock of wandb.log() to avoid errors.
+            indices = list(sampler)
 
-        # Act
-        indices2 = list(sampler)
+            # Act
+            indices2 = list(sampler)
 
-        # Assert
-        self.assertEqual(indices, indices2)
+            # Assert
+            self.assertEqual(indices, indices2)
 
     def test_seeds_different(self):
         if not dist.is_initialized():
@@ -94,15 +107,19 @@ class TestCustomDistributedSampler(unittest.TestCase):
         sampler = CustomDistributedSampler(dataset, case, seed)
 
         # Act
-        seed_tensor = torch.tensor(sampler.seed)
-        all_seeds = [
-            torch.zeros_like(seed_tensor) for _ in range(dist.get_world_size())
-        ]
-        dist.all_gather(all_seeds, seed_tensor)
-        unique_seeds = set(all_seeds)
+        with patch("src.training.custom_sampler.wandb") as mock_wandb:
+            mock_wandb.log = (
+                MagicMock()
+            )  # Creating a mock of wandb.log() to avoid errors.
+            seed_tensor = torch.tensor(sampler.seed)
+            all_seeds = [
+                torch.zeros_like(seed_tensor) for _ in range(dist.get_world_size())
+            ]
+            dist.all_gather(all_seeds, seed_tensor)
+            unique_seeds = set(all_seeds)
 
-        # Assert
-        self.assertEqual(len(unique_seeds), dist.get_world_size())
+            # Assert
+            self.assertEqual(len(unique_seeds), dist.get_world_size())
 
     def test_indices(self):
         if not dist.is_initialized():
@@ -113,26 +130,30 @@ class TestCustomDistributedSampler(unittest.TestCase):
         asis_step_case = CaseFactory.create_case("asis_step_local")
 
         # Act
-        asis_seq_sampler = CustomDistributedSampler(dataset, asis_seq_case, 1234)
-        asis_step_sampler = CustomDistributedSampler(dataset, asis_step_case, 1234)
-        asis_seq_indices = asis_seq_sampler.indices
-        asis_step_indices = asis_step_sampler.indices
+        with patch("src.training.custom_sampler.wandb") as mock_wandb:
+            mock_wandb.log = (
+                MagicMock()
+            )  # Creating a mock of wandb.log() to avoid errors.
+            asis_seq_sampler = CustomDistributedSampler(dataset, asis_seq_case, 1234)
+            asis_step_sampler = CustomDistributedSampler(dataset, asis_step_case, 1234)
+            asis_seq_indices = asis_seq_sampler.indices
+            asis_step_indices = asis_step_sampler.indices
 
-        # Assert
-        # Rank 0 needs to have the first 25% of the indices
-        rank = dist.get_rank()
-        world_size = dist.get_world_size()
-        total_indices = list(range(len(dataset)))
-        self.assertEqual(len(asis_seq_indices), len(dataset) // world_size)
-        self.assertEqual(len(asis_step_indices), len(dataset) // world_size)
+            # Assert
+            # Rank 0 needs to have the first 25% of the indices
+            rank = dist.get_rank()
+            world_size = dist.get_world_size()
+            total_indices = list(range(len(dataset)))
+            self.assertEqual(len(asis_seq_indices), len(dataset) // world_size)
+            self.assertEqual(len(asis_step_indices), len(dataset) // world_size)
 
-        self.assertEqual(total_indices[rank::world_size], asis_step_indices)
-        self.assertEqual(
-            total_indices[
-                rank * len(asis_seq_indices) : (rank + 1) * len(asis_seq_indices)
-            ],
-            asis_seq_indices,
-        )
+            self.assertEqual(total_indices[rank::world_size], asis_step_indices)
+            self.assertEqual(
+                total_indices[
+                    rank * len(asis_seq_indices) : (rank + 1) * len(asis_seq_indices)
+                ],
+                asis_seq_indices,
+            )
 
 
 if __name__ == "__main__":

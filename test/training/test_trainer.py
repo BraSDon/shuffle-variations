@@ -38,7 +38,7 @@ class TestTrainer(unittest.TestCase):
 
         # Create the Trainer instance
         self.trainer = Trainer(self.model, self.optimizer, self.criterion, self.train_loader, self.test_loader,
-                               self.system, self.my_dataset, 'cpu')
+                               self.system, self.my_dataset, torch.device("cpu"))
 
     def test_init(self):
         if not dist.is_initialized():

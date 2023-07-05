@@ -1,12 +1,19 @@
+import sys
 import unittest
+import torch.distributed as dist
+import torch
 from unittest.mock import MagicMock, patch
 from torch.utils.data import DataLoader
 from torchvision import transforms
 from torchvision.datasets import CIFAR10
 
+sys.path.insert(0, sys.path[0] + "/../../")
 from src.data.data import MyDataset
+from src.main import setup_distributed_training
 
-
+# NOTE: All tests are skipped (return without testing) if distributed training
+# fails to initialize. To initialize distributed training, run the following command:
+# torchrun --nproc_per_node=4 test/data/test_data.py
 class TestMyDataset(unittest.TestCase):
     data_path = "../../data"
 
@@ -15,6 +22,12 @@ class TestMyDataset(unittest.TestCase):
         # Ensure that the CIFAR10 dataset is downloaded.
         CIFAR10(root=cls.data_path, train=True, download=True)
         CIFAR10(root=cls.data_path, train=False, download=True)
+
+        try:
+            setup_distributed_training("local", "29500")
+        except:
+            return
+        dist.barrier()
 
     def test_get_dataloaders(self):
         train_transformations = [
@@ -28,7 +41,7 @@ class TestMyDataset(unittest.TestCase):
                 "module": "torchvision.datasets.cifar",
                 "type": "built-in",
                 "name": "CIFAR10",
-            }, 10, 'cpu')
+            }, 10, torch.device("cpu"))
         batch_size = 32
         sampler = MagicMock()
         num_workers = 4
