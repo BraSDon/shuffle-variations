@@ -1,4 +1,3 @@
-import os
 from time import time
 import wandb
 from scipy.spatial.distance import jensenshannon
@@ -13,7 +12,17 @@ from src.util.helper import print0
 
 
 class Trainer:
-    def __init__(self, model, optimizer, criterion, train_loader, test_loader, system, my_dataset, device):
+    def __init__(
+        self,
+        model,
+        optimizer,
+        criterion,
+        train_loader,
+        test_loader,
+        system,
+        my_dataset,
+        device,
+    ):
         self.optimizer = optimizer
         self.criterion = criterion
         self.train_loader = train_loader
@@ -73,7 +82,7 @@ class Trainer:
         if epoch == 0:
             label_frequencies = label_frequencies.float() / label_frequencies.sum()
             label_frequencies = label_frequencies.cpu()
-            ref_freq = self.my_dataset.train_label_frequencies
+            ref_freq = self.my_dataset.train_label_frequencies.cpu()
             kl = sum(kl_div(label_frequencies, ref_freq))
             js = jensenshannon(label_frequencies, ref_freq)
             wandb.log(
@@ -229,7 +238,7 @@ class Trainer:
         )
         label_frequencies = label_counts.float() / label_counts.sum()
         label_frequencies = label_frequencies.cpu()
-        ref_freq = self.my_dataset.train_label_frequencies
+        ref_freq = self.my_dataset.train_label_frequencies.cpu()
         kl = sum(kl_div(label_frequencies, ref_freq))
         js = jensenshannon(label_frequencies, ref_freq)
         wandb.log(
