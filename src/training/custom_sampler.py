@@ -29,13 +29,16 @@ class CustomDistributedSampler(Sampler):
             )
         # pre vs. asis
         if self.case.pre_shuffle:
-            # TODO: Test if all ranks get the same indices.
-            indices = torch.randperm(len(self.dataset)).tolist()
+            # Create a generator with the original seed, such that all ranks
+            # perform the same pre-shuffle.
+            common_generator = torch.Generator()
+            common_generator.manual_seed(seed)
+            self._pre_indices = torch.randperm(len(self.dataset), generator=common_generator).tolist()
         else:
-            indices = list(range(len(self.dataset)))
+            self._pre_indices = list(range(len(self.dataset)))
 
         # step-wise vs. sequential partitioning
-        self.indices = self.case.partitioner.partition(self.world_size, indices)[
+        self.indices = self.case.partitioner.partition(self.world_size, self._pre_indices)[
             self.rank
         ]
 
