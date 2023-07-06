@@ -1,10 +1,16 @@
 import torch
+import numpy as np
 from torch.utils.data import Dataset
 
 
 def sort_indices(dataset):
     labels = dataset.targets
-    sorted_idx = torch.argsort(torch.tensor(labels))
+
+    if isinstance(labels, torch.Tensor):
+        sorted_idx = torch.argsort(labels)
+    else:
+        sorted_idx = np.argsort(labels)
+
     return sorted_idx
 
 

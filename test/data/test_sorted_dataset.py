@@ -2,6 +2,7 @@ import sys
 import unittest
 from unittest.mock import MagicMock
 
+import numpy as np
 import torch
 
 sys.path.insert(0, sys.path[0] + "/../../")
@@ -21,6 +22,16 @@ class TestSortedDataset(unittest.TestCase):
 
     def test_sort_indices(self):
         sorted_indices = sort_indices(self.dataset)
+        self.assertIsInstance(sorted_indices, np.ndarray)
+        self.assertEqual(sorted_indices.tolist(), [1, 4, 7, 0, 3, 6, 9, 2, 5, 8])
+
+    def test_sort_indices_tensor(self):
+        dataset_tensor = MagicMock()
+        dataset_tensor.targets = torch.tensor([1, 0, 2, 1, 0, 2, 1, 0, 2, 1])
+        dataset_tensor.__getitem__.side_effect = lambda x: x
+        dataset_tensor.__len__.side_effect = lambda: len(dataset_tensor.targets)
+
+        sorted_indices = sort_indices(dataset_tensor)
         self.assertIsInstance(sorted_indices, torch.Tensor)
         self.assertEqual(sorted_indices.tolist(), [1, 4, 7, 0, 3, 6, 9, 2, 5, 8])
 
