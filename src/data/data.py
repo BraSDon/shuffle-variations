@@ -149,22 +149,29 @@ class MyDataset:
         except KeyError:
             print("TMPDIR not set, using original path.")
             return self.path
-        src_dir = self.path
-        dst_dir = f"{tmp_path}/{self.name}"
+        src = self.path
+        dst = f"{tmp_path}/{self.name}"
+        os.makedirs(dst, exist_ok=True)
         global_rank = dist.get_rank()
         local_rank = global_rank % int(os.environ["SLURM_GPUS_ON_NODE"])
         if local_rank == 0:
             start = time()
-            print(f"[GPU {global_rank}] Copying dataset to {dst_dir}...")
-            self.copy_files(src_dir, dst_dir)
+            print(f"[GPU {global_rank}] Copying dataset to {dst}...")
+            # If src is a file, copy it to dst, and unpack it if necessary.
+            if os.path.isfile(src):
+                filename = src.split("/")[-1]
+                shutil.copy(src, dst)
+                if src.endswith(".tgz"):
+                    shutil.unpack_archive(dst + "/" + filename, dst)
+                    os.remove(dst + "/" + filename)
+            else:
+                self.copy_files(src, dst)
             print(f"[GPU {global_rank}] Done copying dataset in {time() - start:.2f}s.")
             wandb.log({"dataset_copy_time": time() - start})
         dist.barrier()
-        return dst_dir
+        return dst
 
     def copy_files(self, src_dir, dst_dir, max_workers=32):
-        os.makedirs(dst_dir, exist_ok=True)
-
         # Get a list of all files and directories in the source directory
         for dirpath, dirnames, filenames in os.walk(src_dir):
             # Create the corresponding subdirectories in the destination directory
