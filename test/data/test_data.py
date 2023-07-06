@@ -11,6 +11,7 @@ sys.path.insert(0, sys.path[0] + "/../../")
 from src.data.data import MyDataset
 from src.main import setup_distributed_training
 
+
 # NOTE: All tests are skipped (return without testing) if distributed training
 # fails to initialize. To initialize distributed training, run the following command:
 # torchrun --nproc_per_node=4 test/data/test_data.py
@@ -29,7 +30,8 @@ class TestMyDataset(unittest.TestCase):
             return
         dist.barrier()
 
-    def test_get_dataloaders(self):
+    def setUp(self) -> None:
+        """Initialize the dataset."""
         train_transformations = [
             {"name": "ToTensor", "kwargs": {}},
         ]
@@ -37,17 +39,28 @@ class TestMyDataset(unittest.TestCase):
             mock_wandb.log = (
                 MagicMock()
             )  # Creating a mock of wandb.log() to avoid errors.
-            dataset = MyDataset("CIFAR10", self.data_path, train_transformations, [], {
-                "module": "torchvision.datasets.cifar",
-                "type": "built-in",
-                "name": "CIFAR10",
-            }, 10, torch.device("cpu"))
+            self.dataset = MyDataset(
+                "CIFAR10",
+                self.data_path,
+                train_transformations,
+                [],
+                {
+                    "module": "torchvision.datasets.cifar",
+                    "type": "built-in",
+                    "name": "CIFAR10",
+                },
+                10,
+                torch.device("cpu"),
+            )
+
+    def test_get_dataloaders(self):
+        """Test getting the dataloaders as well as basic properties."""
         batch_size = 32
         sampler = MagicMock()
         num_workers = 4
 
-        train_loader = dataset.get_train_loader(sampler, batch_size, num_workers)
-        test_loader = dataset.get_test_loader(sampler, batch_size, num_workers)
+        train_loader = self.dataset.get_train_loader(sampler, batch_size, num_workers)
+        test_loader = self.dataset.get_test_loader(sampler, batch_size, num_workers)
 
         self.assertIsInstance(train_loader, DataLoader)
         self.assertIsInstance(test_loader, DataLoader)
@@ -64,7 +77,14 @@ class TestMyDataset(unittest.TestCase):
         for _ in test_loader:
             break
 
+    def test_get_train_label_frequencies(self):
+        """Test if the label frequencies are calculated correctly."""
+        expected_label_frequency = torch.tensor([0.1] * 10)
+        label_frequency = self.dataset.train_label_frequencies
+        self.assertTrue(torch.equal(label_frequency, expected_label_frequency))
+
     def test__extract_transform(self):
+        """Test if transformations are extracted correctly."""
         transformations = [
             {"name": "RandomCrop", "kwargs": {"size": (32, 32), "padding": 4}},
             {"name": "RandomHorizontalFlip"},
@@ -79,6 +99,7 @@ class TestMyDataset(unittest.TestCase):
         self.assertEqual(transform.transforms[0].size, (32, 32))
 
     def test__extract_load_function(self):
+        """Test if load function is extracted correctly."""
         load_function = {
             "module": "torchvision.datasets.cifar",
             "type": "built-in",
