@@ -60,6 +60,12 @@ class TestCustomDistributedSampler(unittest.TestCase):
             self.assertEqual(sampler.seed, seed + sampler.rank)
             self.assertEqual(len(sampler.indices), sampler.total_size // sampler.world_size)
 
+    def test_len(self):
+        dataset = self.train
+        case = CaseFactory.create_case("asis_seq_local")
+        sampler = CustomDistributedSampler(dataset, case)
+        self.assertEqual(len(sampler), len(sampler.indices))
+
     def test_pre_shuffle(self):
         """Test if pre-shuffling works correctly."""
         if not dist.is_initialized():
