@@ -8,11 +8,11 @@ import torch
 import torch.distributed as dist
 import wandb
 from torch.utils.data import DataLoader, Dataset, Sampler
-from torch.utils.data.distributed import DistributedSampler
 from torchvision.transforms import transforms
 
 # Bug fix: https://discuss.pytorch.org/t/oserror-image-file-is-truncated-150-bytes-not-processed/64445
 from PIL import ImageFile
+
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 from src.data.sorted_dataset import SortedDataset
@@ -21,8 +21,16 @@ from src.data.sorted_dataset import SortedDataset
 class MyDataset:
     """Class for handling datasets and returning dataloaders."""
 
-    def __init__(self, name: str, path: str, train_transformations: list[dict], test_transformations: list[dict],
-                 load_function: dict, num_classes: int, device):
+    def __init__(
+        self,
+        name: str,
+        path: str,
+        train_transformations: list[dict],
+        test_transformations: list[dict],
+        load_function: dict,
+        num_classes: int,
+        device,
+    ):
         self.name = name
         self.path = path
         self.num_classes = num_classes
@@ -47,6 +55,7 @@ class MyDataset:
             batch_size=batch_size,
             sampler=sampler,
             num_workers=num_workers,
+            pin_memory=True,
             **kwargs,
         )
 
@@ -58,6 +67,7 @@ class MyDataset:
             batch_size=batch_size,
             sampler=sampler,
             num_workers=num_workers,
+            pin_memory=True,
             **kwargs,
         )
 
