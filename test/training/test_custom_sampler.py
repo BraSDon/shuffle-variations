@@ -37,6 +37,7 @@ class TestCustomDistributedSampler(unittest.TestCase):
         free_resources()
 
     def test_init(self):
+        """Test if all attributes are correctly assigned"""
         if not dist.is_initialized():
             return
         # Arrange
@@ -55,9 +56,34 @@ class TestCustomDistributedSampler(unittest.TestCase):
             self.assertEqual(sampler.world_size, dist.get_world_size())
             self.assertEqual(sampler.rank, dist.get_rank())
             self.assertEqual(sampler.total_size % sampler.world_size, 0)
+            self.assertEqual(sampler.case, case)
+            self.assertEqual(sampler.seed, seed + sampler.rank)
             self.assertEqual(len(sampler.indices), sampler.total_size // sampler.world_size)
 
+    def test_pre_shuffle(self):
+        """Test if pre-shuffling works correctly."""
+        if not dist.is_initialized():
+            return
+        # Arrange
+        dataset = self.train
+        case = CaseFactory.create_case("pre_seq_local")
+        seed = 1234
+
+        # Act
+        sampler = CustomDistributedSampler(dataset, case, seed)
+        pre_indices_tensor = torch.Tensor(sampler._pre_indices)
+
+        # Assert
+        all_indices = [
+            torch.zeros_like(pre_indices_tensor) for _ in range(dist.get_world_size())
+        ]
+        dist.all_gather(all_indices, pre_indices_tensor)
+        # Check if all indices are the same
+        for indices in all_indices:
+            self.assertEqual(pre_indices_tensor.tolist(), indices.tolist())
+
     def test_iter_shuffle(self):
+        """Test if local shuffle results in different indices each time iter is called."""
         if not dist.is_initialized():
             return
         # Arrange
@@ -78,6 +104,7 @@ class TestCustomDistributedSampler(unittest.TestCase):
             self.assertNotEqual(indices, indices2)
 
     def test_iter_no_shuffle(self):
+        """Test if noshuffle results in same indices each time iter is called."""
         if not dist.is_initialized():
             return
         # Arrange
@@ -98,6 +125,7 @@ class TestCustomDistributedSampler(unittest.TestCase):
             self.assertEqual(indices, indices2)
 
     def test_seeds_different(self):
+        """Test if the seeds are all different."""
         if not dist.is_initialized():
             return
         # Arrange
@@ -116,12 +144,13 @@ class TestCustomDistributedSampler(unittest.TestCase):
                 torch.zeros_like(seed_tensor) for _ in range(dist.get_world_size())
             ]
             dist.all_gather(all_seeds, seed_tensor)
-            unique_seeds = set(all_seeds)
+            unique_seeds = set([seed.item() for seed in all_seeds])
 
             # Assert
             self.assertEqual(len(unique_seeds), dist.get_world_size())
 
     def test_indices(self):
+        """Test if sequential and step-wise partitioning work correctly."""
         if not dist.is_initialized():
             return
         # Arrange
