@@ -49,7 +49,7 @@ class Trainer:
         mcc_sum = 0.0
         num_classes = self.my_dataset.num_classes
         num_batches = len(self.train_loader)
-        label_frequencies = torch.zeros(self.my_dataset.num_classes).to(self.device)
+        label_frequencies = torch.zeros(self.my_dataset.num_classes, device=self.device)
         start_time = time()
         for i, (inputs, labels) in enumerate(self.train_loader):
             inputs, labels = inputs.to(self.device), labels.to(self.device)
@@ -82,7 +82,7 @@ class Trainer:
         if epoch == 0:
             label_frequencies = label_frequencies.float() / label_frequencies.sum()
             label_frequencies = label_frequencies.cpu()
-            ref_freq = self.my_dataset.train_label_frequencies.cpu()
+            ref_freq = self.my_dataset.train_label_frequencies
             kl = sum(kl_div(label_frequencies, ref_freq))
             js = jensenshannon(label_frequencies, ref_freq)
             wandb.log(
@@ -236,9 +236,9 @@ class Trainer:
         label_counts = torch.bincount(
             local_minibatch_labels, minlength=self.my_dataset.num_classes
         )
-        label_frequencies = label_counts.float() / label_counts.sum()
-        label_frequencies = label_frequencies.cpu()
-        ref_freq = self.my_dataset.train_label_frequencies.cpu()
+        label_frequencies_device = label_counts.float() / label_counts.sum()
+        label_frequencies = label_frequencies_device.cpu()
+        ref_freq = self.my_dataset.train_label_frequencies
         kl = sum(kl_div(label_frequencies, ref_freq))
         js = jensenshannon(label_frequencies, ref_freq)
         wandb.log(
@@ -251,9 +251,8 @@ class Trainer:
         )
 
         # Gather all label frequencies from all processes
-        label_frequencies = label_frequencies.to(self.device)
-        dist.all_reduce(label_frequencies, op=dist.ReduceOp.SUM)
-        label_frequencies /= dist.get_world_size()
+        dist.all_reduce(label_frequencies_device, op=dist.ReduceOp.SUM)
+        label_frequencies_device /= dist.get_world_size()
         label_frequencies = label_frequencies.cpu()
         kl = sum(kl_div(label_frequencies, ref_freq))
         js = jensenshannon(label_frequencies, ref_freq)
