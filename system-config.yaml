@@ -54,7 +54,7 @@ datasets:
       train:
         - name: RandomResizedCrop
           kwargs:
-            size: 224
+            size: (224, 224)
         - name: RandomHorizontalFlip
           kwargs: {}
         - name: ToTensor
@@ -66,10 +66,10 @@ datasets:
       test:
         - name: Resize
           kwargs:
-            size: 256
+            size: (256, 256)
         - name: CenterCrop
           kwargs:
-            size: 224
+            size: (224, 224)
         - name: ToTensor
           kwargs: {}
         - name: Normalize
@@ -88,10 +88,10 @@ datasets:
       train:
         - name: Resize
           kwargs:
-            size: 256
+            size: (256, 256)
         - name: CenterCrop
           kwargs:
-            size: 224
+            size: (224, 224)
         - name: ToTensor
           kwargs: {}
         - name: Normalize
@@ -101,10 +101,10 @@ datasets:
       test:
         - name: Resize
           kwargs:
-            size: 256
+            size: (256, 256)
         - name: CenterCrop
           kwargs:
-            size: 224
+            size: (224, 224)
         - name: ToTensor
           kwargs: {}
         - name: Normalize
@@ -123,10 +123,10 @@ datasets:
       train:
         - name: Resize
           kwargs:
-            size: 256
+            size: (256, 256)
         - name: CenterCrop
           kwargs:
-            size: 224
+            size: (224, 224)
         - name: ToTensor
           kwargs: {}
         - name: Normalize
@@ -136,10 +136,10 @@ datasets:
       test:
         - name: Resize
           kwargs:
-            size: 256
+            size: (256, 256)
         - name: CenterCrop
           kwargs:
-            size: 224
+            size: (224, 224)
         - name: ToTensor
           kwargs: {}
         - name: Normalize
