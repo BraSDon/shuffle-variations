@@ -115,7 +115,12 @@ class MyDataset:
         target_tensor = torch.Tensor(self.train_dataset.targets).type(torch.int32)
         bincount = torch.bincount(target_tensor, minlength=self.num_classes)
         print(f"Train_label_freq_calc_time: {time() - start}")
-        wandb.log({"train_label_freq_calc_time": time() - start})
+        wandb.log(
+            {
+                "train_label_freq_calc_time": time() - start,
+                "train_label_freq": bincount / bincount.sum(),
+            }
+        )
         return bincount / bincount.sum()
 
     @staticmethod
@@ -194,4 +199,5 @@ class MyDataset:
 
     @staticmethod
     def copy_file(src, dst):
+        # TODO: Maybe use normal copy() to avoid copying metadata?
         shutil.copy2(src, dst)
