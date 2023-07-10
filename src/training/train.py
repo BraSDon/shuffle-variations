@@ -208,9 +208,11 @@ class Trainer:
         )
 
     def average_statistic(self, statistic):
-        tensor = torch.tensor(statistic).to(self.device)
-        dist.all_reduce(tensor, op=dist.ReduceOp.SUM)
-        return tensor.item() / dist.get_world_size()
+        if not isinstance(statistic, torch.Tensor):
+            statistic = torch.tensor(statistic, device=self.device)
+        assert statistic.device == self.device
+        dist.all_reduce(statistic, op=dist.ReduceOp.SUM)
+        return statistic.item() / dist.get_world_size()
 
     def calculate_accuracy(self, outputs, labels, topk=(1, 5)):
         with torch.no_grad():
