@@ -66,8 +66,16 @@ def main():
     sanity_check(system_config["system"])
 
     # 8. Setup trainer
-    trainer = Trainer(model=model, optimizer=optimizer, criterion=criterion, train_loader=train_loader,
-                      test_loader=test_loader, system=system_config["system"], my_dataset=my_dataset, device=device)
+    trainer = Trainer(
+        model=model,
+        optimizer=optimizer,
+        criterion=criterion,
+        train_loader=train_loader,
+        test_loader=test_loader,
+        system=system_config["system"],
+        my_dataset=my_dataset,
+        device=device,
+    )
 
     # 9. Run training
     trainer.train(run_config["max-epochs"])
@@ -167,7 +175,15 @@ def get_dataset(system_config: dict, run_config: dict, device) -> MyDataset:
     load_function = system_config["datasets"][dataset_name]["load-function"]
     num_classes = system_config["datasets"][dataset_name]["num-classes"]
 
-    return MyDataset(dataset_name, path, train_transformations, test_transformations, load_function, num_classes, device)
+    return MyDataset(
+        dataset_name,
+        path,
+        train_transformations,
+        test_transformations,
+        load_function,
+        num_classes,
+        device,
+    )
 
 
 def get_model_by_name(system_config, run_config) -> torch.nn.Module:
@@ -194,9 +210,7 @@ def get_model_by_name(system_config, run_config) -> torch.nn.Module:
             #         os.makedirs(hub_dir)
             if local_rank != 0:
                 sleep(5)
-            return torch.hub.load(
-                repo, model, pretrained=False, trust_repo=True, num_classes=num_classes
-            )
+            return torch.hub.load(repo, model, trust_repo=True, num_classes=num_classes)
         except:
             raise NotImplementedError(
                 f"An error occurred while loading {model}" f" from torch.hub."
