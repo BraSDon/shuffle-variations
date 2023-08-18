@@ -243,12 +243,17 @@ class Trainer:
         ref_freq = self.my_dataset.train_label_frequencies
         kl = sum(kl_div(label_frequencies, ref_freq))
         js = jensenshannon(label_frequencies, ref_freq)
+        mean_error, std_error = self.calc_mean_std_error_of_frequency(
+            label_frequencies, ref_freq
+        )
         wandb.log(
             {
                 f"{prefix}_batch": batch,
                 f"{prefix}_local_label_frequencies": label_frequencies.tolist(),
                 f"{prefix}_local_kl_div": kl,
                 f"{prefix}_local_js_div": js,
+                f"{prefix}_local_mean_error": mean_error,
+                f"{prefix}_local_std_error": std_error,
             }
         )
 
@@ -258,11 +263,24 @@ class Trainer:
         label_frequencies = label_frequencies.cpu()
         kl = sum(kl_div(label_frequencies, ref_freq))
         js = jensenshannon(label_frequencies, ref_freq)
+        mean_error, std_error = self.calc_mean_std_error_of_frequency(
+            label_frequencies, ref_freq
+        )
         wandb.log(
             {
                 f"{prefix}_batch": batch,
                 f"{prefix}_global_label_frequencies": label_frequencies.tolist(),
                 f"{prefix}_global_kl_div": kl,
                 f"{prefix}_global_js_div": js,
+                f"{prefix}_global_mean_error": mean_error,
+                f"{prefix}_global_std_error": std_error,
             }
         )
+
+    @staticmethod
+    def calc_mean_std_error_of_frequency(
+        freq: torch.tensor, reference_freq: torch.tensor
+    ):
+        mean_error = torch.mean(torch.abs(freq - reference_freq))
+        std_error = torch.std(torch.abs(freq - reference_freq))
+        return mean_error, std_error
