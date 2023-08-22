@@ -11,4 +11,11 @@ learning-rate: 0.1
 momentum: 0.9
 weight-decay: 0.0005
 max-epochs: 2
-warmup-epochs: 5
+
+scheduler:
+  warmup-epochs: 5
+  reference-kn: 4096
+  name: reduce-on-plateau
+  kwargs:
+    mode: min
+    factor: 0.1

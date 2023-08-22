@@ -1,6 +1,6 @@
 import sys
 import unittest
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import torchmetrics
 import torch
@@ -8,7 +8,7 @@ import torch.distributed as dist
 from torch import nn
 
 sys.path.insert(0, sys.path[0] + "/../../")
-from src.main import setup_distributed_training
+from src.main import setup_distributed_training, get_scheduler
 from src.training.train import Trainer
 
 
@@ -36,9 +36,63 @@ class TestTrainer(unittest.TestCase):
         self.my_dataset = MagicMock()
         self.my_dataset.num_classes = 10
 
+        self.run_config = {
+            "schedulers": {
+                "name": "step",
+                "kwargs": {"step_size": 5, "gamma": 0.1},
+                "warmup-epochs": 5,
+                "reference-kn": 4096,
+            },
+            "learning-rate": 0.1,
+            "batch-size": 128,
+        }
+
         # Create the Trainer instance
-        self.trainer = Trainer(self.model, self.optimizer, self.criterion, self.train_loader, self.test_loader,
-                               self.system, self.my_dataset, torch.device("cpu"))
+        self.trainer = Trainer(
+            self.model,
+            self.optimizer,
+            self.criterion,
+            None,
+            self.train_loader,
+            self.test_loader,
+            self.system,
+            self.my_dataset,
+            torch.device("cpu"),
+        )
+
+    def test_lr_scheduler(self):
+        """Test that the lr scheduler is called if it is not None"""
+        if not dist.is_initialized():
+            return
+        self.trainer.scheduler = MagicMock()
+        self.trainer.run_epoch(0)
+        self.trainer.scheduler.step.assert_called_once()
+
+    def test_no_lr_scheduler(self):
+        """Test that the lr scheduler is not called if it is None"""
+        if not dist.is_initialized():
+            return
+        self.trainer.scheduler = None
+        self.trainer.run_epoch(0)
+        self.trainer.scheduler.step.assert_not_called()
+
+    @patch("src.main.dist.get_world_size", return_value=64)
+    def test_lr_scheduler_transition(self, mock_dist):
+        """Test that the lr scheduler is called if it is not None"""
+        if not dist.is_initialized():
+            return
+        optimizer = torch.optim.SGD([torch.tensor(1.0)], lr=0.1)
+        self.trainer.scheduler = get_scheduler(optimizer, self.run_config)
+        # Run 6 epochs
+        for i in range(6):
+            self.trainer.run_epoch(i)
+            print(self.optimizer.param_groups[0]["lr"])
+        # Check that the lr is 0.2
+        self.assertEqual(self.optimizer.param_groups[0]["lr"], 0.2)
+        # Run 10 more epochs
+        for i in range(6, 16):
+            self.trainer.run_epoch(i)
+            print(self.optimizer.param_groups[0]["lr"])
 
     def test_init(self):
         if not dist.is_initialized():

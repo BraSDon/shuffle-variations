@@ -17,6 +17,7 @@ class Trainer:
         model,
         optimizer,
         criterion,
+        scheduler,
         train_loader,
         test_loader,
         system,
@@ -25,6 +26,7 @@ class Trainer:
     ):
         self.optimizer = optimizer
         self.criterion = criterion
+        self.scheduler = scheduler
         self.train_loader = train_loader
         self.test_loader = test_loader
         self.my_dataset = my_dataset
@@ -39,6 +41,8 @@ class Trainer:
         for epoch in range(max_epochs):
             self.run_epoch(epoch)
             self.test(epoch)
+            if self.scheduler is not None:
+                self.scheduler.step()
 
     def run_epoch(self, epoch: int):
         self.model.train()

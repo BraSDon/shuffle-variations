@@ -9,6 +9,7 @@ import yaml
 import numpy as np
 import torch
 from torch.utils.data import Sampler, DistributedSampler
+from torch.optim.lr_scheduler import ReduceLROnPlateau, StepLR, SequentialLR
 import torch.distributed as dist
 
 sys.path.insert(0, sys.path[0] + "/../")
@@ -18,6 +19,7 @@ from src.training.train import Trainer
 from src.data.data import MyDataset
 from src.training.custom_sampler import CustomDistributedSampler
 from src.util.cases import CaseFactory
+from src.util.warmup_lr import WarmupLR
 
 
 def main():
@@ -52,7 +54,7 @@ def main():
     model = get_model_by_name(system_config, run_config)
     assert model is not None
 
-    # 6. Setup training_objects (criterion, optimizer)
+    # 6. Setup training_objects (criterion, optimizer, scheduler)
     criterion = get_criterion(run_config["criterion"])
     optimizer = get_optimizer(
         run_config["optimizer"],
@@ -61,6 +63,7 @@ def main():
         run_config["weight-decay"],
         run_config["momentum"],
     )
+    scheduler = get_scheduler(optimizer, run_config)
 
     # 7. Perform sanity check before training
     sanity_check(system_config["system"])
@@ -70,6 +73,7 @@ def main():
         model=model,
         optimizer=optimizer,
         criterion=criterion,
+        scheduler=scheduler,
         train_loader=train_loader,
         test_loader=test_loader,
         system=system_config["system"],
@@ -237,6 +241,38 @@ def get_optimizer(optimizer: str, model: torch.nn.Module, lr, weight_decay, mome
         return torch.optim.Adam(model.parameters(), lr=lr, weight_decay=weight_decay)
     else:
         raise NotImplementedError(f"Optimizer {optimizer} not implemented.")
+
+
+def get_scheduler(optimizer: torch.optim.Optimizer, run_config: dict):
+    """
+    Create SequentialLR consisting of gradual warmup lr that implements the
+    strategy of: https://arxiv.org/abs/1706.02677. And an optional scheduler.
+    """
+    scheduler_dict: dict = run_config["schedulers"]
+    initial_lr = run_config["learning-rate"]
+    target_lr = (
+        initial_lr
+        * run_config["batch-size"]
+        * dist.get_world_size()
+        / scheduler_dict["reference-kn"]
+    )
+    warmup_scheduler = WarmupLR(
+        optimizer, initial_lr, target_lr, scheduler_dict["warmup-epochs"]
+    )
+    kwargs = scheduler_dict["kwargs"]
+    if scheduler_dict["name"] == "reduce-on-plateau":
+        scheduler = ReduceLROnPlateau(optimizer, **kwargs)
+    elif scheduler_dict["name"] == "step":
+        scheduler = StepLR(optimizer, **kwargs)
+    elif scheduler_dict["name"] == "none":
+        return warmup_scheduler
+    else:
+        raise NotImplementedError(
+            f"Scheduler {scheduler_dict['name']} not implemented."
+        )
+    return SequentialLR(
+        optimizer, [warmup_scheduler, scheduler], [scheduler_dict["warmup-epochs"]]
+    )
 
 
 def sanity_check(device):
