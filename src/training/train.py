@@ -214,7 +214,8 @@ class Trainer:
     def average_statistic(self, statistic):
         if not isinstance(statistic, torch.Tensor):
             statistic = torch.tensor(statistic, device=self.device)
-        assert statistic.device == self.device
+        else:
+            statistic.to(self.device)
         dist.all_reduce(statistic, op=dist.ReduceOp.SUM)
         return statistic.item() / dist.get_world_size()
 
