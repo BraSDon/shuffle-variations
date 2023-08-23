@@ -9,7 +9,7 @@ import yaml
 import numpy as np
 import torch
 from torch.utils.data import Sampler, DistributedSampler
-from torch.optim.lr_scheduler import ReduceLROnPlateau, StepLR, SequentialLR, LinearLR
+from torch.optim.lr_scheduler import StepLR, SequentialLR, LinearLR
 import torch.distributed as dist
 
 sys.path.insert(0, sys.path[0] + "/../")
@@ -270,9 +270,7 @@ def get_scheduler(optimizer: torch.optim.Optimizer, run_config: dict):
         total_iters=scheduler_dict["warmup-epochs"],
     )
     kwargs = scheduler_dict["kwargs"]
-    if scheduler_dict["name"] == "reduce-on-plateau":
-        scheduler = ReduceLROnPlateau(optimizer, **kwargs)
-    elif scheduler_dict["name"] == "step":
+    if scheduler_dict["name"] == "step":
         scheduler = StepLR(optimizer, **kwargs)
     elif scheduler_dict["name"] == "none":
         return warmup_scheduler

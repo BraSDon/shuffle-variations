@@ -12,10 +12,10 @@ momentum: 0.9
 weight-decay: 0.0005
 max-epochs: 2
 
-scheduler:
+schedulers:
   warmup-epochs: 5
   reference-kn: 4096
-  name: reduce-on-plateau
+  name: step
   kwargs:
-    mode: min
-    factor: 0.1
+    gamma: 0.1
+    step_size: 20
