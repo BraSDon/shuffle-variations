@@ -3,13 +3,11 @@ import unittest
 from unittest.mock import patch
 
 import torch
-from torch.optim.lr_scheduler import ReduceLROnPlateau, SequentialLR
-
+from torch.optim.lr_scheduler import ReduceLROnPlateau, SequentialLR, LinearLR
 
 sys.path.insert(0, sys.path[0] + "/../")
 
 from src.main import get_scheduler
-from src.util.warmup_lr import WarmupLR
 
 
 class TestMain(unittest.TestCase):
@@ -32,7 +30,7 @@ class TestMain(unittest.TestCase):
         scheduler = get_scheduler(self.optimizer, self.run_config)
         assert isinstance(scheduler, SequentialLR)
         assert len(scheduler._schedulers) == 2
-        assert isinstance(scheduler._schedulers[0], WarmupLR)
+        assert isinstance(scheduler._schedulers[0], LinearLR)
         assert isinstance(scheduler._schedulers[1], ReduceLROnPlateau)
 
 

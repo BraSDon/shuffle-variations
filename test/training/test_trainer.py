@@ -60,39 +60,66 @@ class TestTrainer(unittest.TestCase):
             torch.device("cpu"),
         )
 
-    def test_lr_scheduler(self):
+    @patch("src.training.train.Trainer.run_epoch")
+    @patch("src.training.train.Trainer.test")
+    def test_lr_scheduler(self, m1, m2):
         """Test that the lr scheduler is called if it is not None"""
         if not dist.is_initialized():
             return
+
         self.trainer.scheduler = MagicMock()
-        self.trainer.run_epoch(0)
+        self.trainer.train(1)
         self.trainer.scheduler.step.assert_called_once()
 
-    def test_no_lr_scheduler(self):
-        """Test that the lr scheduler is not called if it is None"""
-        if not dist.is_initialized():
-            return
-        self.trainer.scheduler = None
-        self.trainer.run_epoch(0)
-        self.trainer.scheduler.step.assert_not_called()
-
+    @patch("src.training.train.Trainer.run_epoch")
+    @patch("src.training.train.Trainer.test")
     @patch("src.main.dist.get_world_size", return_value=64)
-    def test_lr_scheduler_transition(self, mock_dist):
+    def test_lr_scheduler_transition(self, m1, m2, m3):
         """Test that the lr scheduler is called if it is not None"""
         if not dist.is_initialized():
             return
-        optimizer = torch.optim.SGD([torch.tensor(1.0)], lr=0.1)
-        self.trainer.scheduler = get_scheduler(optimizer, self.run_config)
-        # Run 6 epochs
-        for i in range(6):
-            self.trainer.run_epoch(i)
-            print(self.optimizer.param_groups[0]["lr"])
-        # Check that the lr is 0.2
-        self.assertEqual(self.optimizer.param_groups[0]["lr"], 0.2)
-        # Run 10 more epochs
-        for i in range(6, 16):
-            self.trainer.run_epoch(i)
-            print(self.optimizer.param_groups[0]["lr"])
+
+        assert dist.get_world_size() == 64
+
+        self.trainer.optimizer = optim = torch.optim.SGD([torch.tensor(1.0)], lr=0.2)
+        self.trainer.scheduler = get_scheduler(optim, self.run_config)
+        self.assertAlmostEqual(optim.param_groups[0]["lr"], 0.1)
+        self.trainer.optimizer.step()
+        self.trainer.train(4)
+        print(f"After 4 epochs: {optim.param_groups[0]['lr']}")
+        self.assertAlmostEqual(optim.param_groups[0]["lr"], 0.18)
+        self.trainer.train(1)
+        print(f"After 5 epochs: {optim.param_groups[0]['lr']}")
+        print(optim.param_groups[0]["lr"])
+        self.assertAlmostEqual(optim.param_groups[0]["lr"], 0.2)
+        self.trainer.train(5)
+        print(f"After 10 epochs: {optim.param_groups[0]['lr']}")
+        self.assertAlmostEqual(optim.param_groups[0]["lr"], 0.02)
+
+    @patch("src.training.train.Trainer.run_epoch")
+    @patch("src.training.train.Trainer.test")
+    @patch("src.main.dist.get_world_size", return_value=128)
+    def test_lr_scheduler_transition_2(self, m1, m2, m3):
+        """Test that the lr scheduler is called if it is not None"""
+        if not dist.is_initialized():
+            return
+
+        assert dist.get_world_size() == 128
+
+        self.trainer.optimizer = optim = torch.optim.SGD([torch.tensor(1.0)], lr=0.4)
+        self.trainer.scheduler = get_scheduler(optim, self.run_config)
+        self.assertAlmostEqual(optim.param_groups[0]["lr"], 0.1)
+        self.trainer.optimizer.step()
+        self.trainer.train(4)
+        print(f"After 4 epochs: {optim.param_groups[0]['lr']}")
+        self.assertAlmostEqual(optim.param_groups[0]["lr"], 0.34)
+        self.trainer.train(1)
+        print(f"After 5 epochs: {optim.param_groups[0]['lr']}")
+        print(optim.param_groups[0]["lr"])
+        self.assertAlmostEqual(optim.param_groups[0]["lr"], 0.4)
+        self.trainer.train(5)
+        print(f"After 10 epochs: {optim.param_groups[0]['lr']}")
+        self.assertAlmostEqual(optim.param_groups[0]["lr"], 0.04)
 
     def test_init(self):
         if not dist.is_initialized():

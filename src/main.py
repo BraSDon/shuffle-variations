@@ -9,7 +9,7 @@ import yaml
 import numpy as np
 import torch
 from torch.utils.data import Sampler, DistributedSampler
-from torch.optim.lr_scheduler import ReduceLROnPlateau, StepLR, SequentialLR
+from torch.optim.lr_scheduler import ReduceLROnPlateau, StepLR, SequentialLR, LinearLR
 import torch.distributed as dist
 
 sys.path.insert(0, sys.path[0] + "/../")
@@ -19,7 +19,6 @@ from src.training.train import Trainer
 from src.data.data import MyDataset
 from src.training.custom_sampler import CustomDistributedSampler
 from src.util.cases import CaseFactory
-from src.util.warmup_lr import WarmupLR
 
 
 def main():
@@ -62,6 +61,7 @@ def main():
         run_config["learning-rate"],
         run_config["weight-decay"],
         run_config["momentum"],
+        run_config,
     )
     scheduler = get_scheduler(optimizer, run_config)
 
@@ -231,14 +231,22 @@ def get_criterion(criterion: str):
         raise NotImplementedError(f"Criterion {criterion} not implemented.")
 
 
-def get_optimizer(optimizer: str, model: torch.nn.Module, lr, weight_decay, momentum):
+def get_optimizer(
+    optimizer: str, model: torch.nn.Module, lr, weight_decay, momentum, run_config
+):
     """Return the optimizer with the given name."""
+    scaled_lr = get_scaled_lr(lr, run_config)
     if optimizer == "sgd":
         return torch.optim.SGD(
-            model.parameters(), lr=lr, weight_decay=weight_decay, momentum=momentum
+            model.parameters(),
+            lr=scaled_lr,
+            weight_decay=weight_decay,
+            momentum=momentum,
         )
     elif optimizer == "adam":
-        return torch.optim.Adam(model.parameters(), lr=lr, weight_decay=weight_decay)
+        return torch.optim.Adam(
+            model.parameters(), lr=scaled_lr, weight_decay=weight_decay
+        )
     else:
         raise NotImplementedError(f"Optimizer {optimizer} not implemented.")
 
@@ -250,14 +258,16 @@ def get_scheduler(optimizer: torch.optim.Optimizer, run_config: dict):
     """
     scheduler_dict: dict = run_config["schedulers"]
     initial_lr = run_config["learning-rate"]
-    target_lr = (
-        initial_lr
-        * run_config["batch-size"]
-        * dist.get_world_size()
-        / scheduler_dict["reference-kn"]
-    )
-    warmup_scheduler = WarmupLR(
-        optimizer, initial_lr, target_lr, scheduler_dict["warmup-epochs"]
+    scaled_lr = get_scaled_lr(initial_lr, run_config)
+
+    # If start_factor > 1 (initial_lr > scaled_lr), then...
+    # 1. we need no warmup. CHECK
+    # 2. the scaled_lr should be used from the start. CHECK
+    start_factor = 1 if initial_lr > scaled_lr else initial_lr / scaled_lr
+    warmup_scheduler = LinearLR(
+        optimizer,
+        start_factor=start_factor,
+        total_iters=scheduler_dict["warmup-epochs"],
     )
     kwargs = scheduler_dict["kwargs"]
     if scheduler_dict["name"] == "reduce-on-plateau":
@@ -272,6 +282,15 @@ def get_scheduler(optimizer: torch.optim.Optimizer, run_config: dict):
         )
     return SequentialLR(
         optimizer, [warmup_scheduler, scheduler], [scheduler_dict["warmup-epochs"]]
+    )
+
+
+def get_scaled_lr(initial_lr, run_config):
+    return (
+        initial_lr
+        * run_config["batch-size"]
+        * dist.get_world_size()
+        / run_config["schedulers"]["reference-kn"]
     )
 
 
