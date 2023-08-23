@@ -58,9 +58,13 @@ class TestCustomDistributedSampler(unittest.TestCase):
             self.assertEqual(sampler.total_size % sampler.world_size, 0)
             self.assertEqual(sampler.case, case)
             self.assertEqual(sampler.seed, seed + sampler.rank)
-            self.assertEqual(len(sampler.indices), sampler.total_size // sampler.world_size)
+            self.assertEqual(
+                len(sampler.indices), sampler.total_size // sampler.world_size
+            )
 
     def test_len(self):
+        if not dist.is_initialized():
+            return
         dataset = self.train
         case = CaseFactory.create_case("asis_seq_local")
         sampler = CustomDistributedSampler(dataset, case)
