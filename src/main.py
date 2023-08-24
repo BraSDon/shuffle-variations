@@ -55,9 +55,7 @@ def main():
 
     # 6. Setup training_objects (criterion, optimizer, scheduler)
     criterion = get_criterion(run_config["criterion"])
-    optimizer = get_optimizer(
-        run_config,
-    )
+    optimizer = get_optimizer(model, run_config)
     scheduler = get_scheduler(optimizer, run_config)
 
     # 7. Perform sanity check before training
