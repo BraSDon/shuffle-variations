@@ -35,10 +35,10 @@ models:
     torch.hub.load:
       repo: pytorch/vision:v0.10.0
       model: mobilenet_v3_small
-  deit-base:
+  deit-small-distilled:
     torch.hub.load:
       repo: facebookresearch/deit:main
-      model: deit_base_patch_224
+      model: deit_small_distilled_patch16_224
 
 
 # Describe datasets that are available
@@ -86,19 +86,31 @@ datasets:
       name: CIFAR10
     transforms:
       train:
+        - name: Resize
+          kwargs:
+            size: [256, 256]
+        - name: CenterCrop
+          kwargs:
+            size: [224, 224]
         - name: ToTensor
           kwargs: {}
         - name: Normalize
           kwargs:
-            mean: [0.4914, 0.4822, 0.4465]
-            std: [0.247, 0.243, 0.261]
+            mean: [0.485, 0.456, 0.406]
+            std: [0.229, 0.224, 0.225]
       test:
+        - name: Resize
+          kwargs:
+            size: [256, 256]
+        - name: CenterCrop
+          kwargs:
+            size: [224, 224]
         - name: ToTensor
           kwargs: {}
         - name: Normalize
           kwargs:
-            mean: [0.4914, 0.4822, 0.4465]
-            std: [0.247, 0.243, 0.261]
+            mean: [0.485, 0.456, 0.406]
+            std: [0.229, 0.224, 0.225]
 
   CIFAR100:
     path: /hkfs/home/dataset/datasets/CIFAR100/train
@@ -109,19 +121,31 @@ datasets:
       name: CIFAR100
     transforms:
       train:
+        - name: Resize
+          kwargs:
+            size: [256, 256]
+        - name: CenterCrop
+          kwargs:
+            size: [224, 224]
         - name: ToTensor
           kwargs: {}
         - name: Normalize
           kwargs:
-            mean: [0.4914, 0.4822, 0.4465]
-            std: [0.247, 0.243, 0.261]
+            mean: [0.485, 0.456, 0.406]
+            std: [0.229, 0.224, 0.225]
       test:
+        - name: Resize
+          kwargs:
+            size: [256, 256]
+        - name: CenterCrop
+          kwargs:
+            size: [224, 224]
         - name: ToTensor
           kwargs: {}
         - name: Normalize
           kwargs:
-            mean: [0.4914, 0.4822, 0.4465]
-            std: [0.247, 0.243, 0.261]
+            mean: [0.485, 0.456, 0.406]
+            std: [0.229, 0.224, 0.225]
 
   SUSY:
     path: /hkfs/home/dataset/datasets/susy
