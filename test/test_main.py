@@ -46,7 +46,7 @@ class TestMain(unittest.TestCase):
                 "reference-kn": 4096,
                 "kwargs": {"gamma": 0.1, "step_size": 30},
             },
-            "learning-rate": 0.1,
+            "optimizer": {"name": "sgd", "kwargs": {"lr": 0.1, "momentum": 0.9}},
             "batch-size": 128,
         }
 

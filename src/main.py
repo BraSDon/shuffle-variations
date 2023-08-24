@@ -248,7 +248,7 @@ def get_scheduler(optimizer: torch.optim.Optimizer, run_config: dict):
     strategy of: https://arxiv.org/abs/1706.02677. And an optional scheduler.
     """
     scheduler_dict: dict = run_config["schedulers"]
-    initial_lr = run_config["learning-rate"]
+    initial_lr = run_config["optimizer"]["kwargs"]["lr"]
     scaled_lr = get_scaled_lr(initial_lr, run_config)
 
     # If start_factor > 1 (initial_lr > scaled_lr), then...
