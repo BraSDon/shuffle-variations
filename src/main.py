@@ -56,11 +56,6 @@ def main():
     # 6. Setup training_objects (criterion, optimizer, scheduler)
     criterion = get_criterion(run_config["criterion"])
     optimizer = get_optimizer(
-        run_config["optimizer"],
-        model,
-        run_config["learning-rate"],
-        run_config["weight-decay"],
-        run_config["momentum"],
         run_config,
     )
     scheduler = get_scheduler(optimizer, run_config)
@@ -231,22 +226,20 @@ def get_criterion(criterion: str):
         raise NotImplementedError(f"Criterion {criterion} not implemented.")
 
 
-def get_optimizer(
-    optimizer: str, model: torch.nn.Module, lr, weight_decay, momentum, run_config
-):
+def get_optimizer(model: torch.nn.Module, run_config):
     """Return the optimizer with the given name."""
-    scaled_lr = get_scaled_lr(lr, run_config)
+    optimizer = run_config["optimizer"]["name"]
+    kwargs = run_config["optimizer"]["kwargs"]
+    scaled_lr = get_scaled_lr(kwargs["lr"], run_config)
+
+    # Remove lr from kwargs, as it is already scaled.
+    kwargs.pop("lr")
     if optimizer == "sgd":
-        return torch.optim.SGD(
-            model.parameters(),
-            lr=scaled_lr,
-            weight_decay=weight_decay,
-            momentum=momentum,
-        )
+        return torch.optim.SGD(model.parameters(), lr=scaled_lr, **kwargs)
     elif optimizer == "adam":
-        return torch.optim.Adam(
-            model.parameters(), lr=scaled_lr, weight_decay=weight_decay
-        )
+        return torch.optim.Adam(model.parameters(), lr=scaled_lr, **kwargs)
+    elif optimizer == "rmsprop":
+        return torch.optim.RMSprop(model.parameters(), lr=scaled_lr, **kwargs)
     else:
         raise NotImplementedError(f"Optimizer {optimizer} not implemented.")
 
