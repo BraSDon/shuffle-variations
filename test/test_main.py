@@ -54,6 +54,7 @@ class TestMain(unittest.TestCase):
     def test_get_scheduler(self, mock_dist):
         self.__set_up_get_scheduler()
         scheduler = get_scheduler(self.optimizer, self.run_config)
+        print(self.run_config["optimizer"]["kwargs"]["lr"])
         assert isinstance(scheduler, SequentialLR)
         assert len(scheduler._schedulers) == 2
         assert isinstance(scheduler._schedulers[0], LinearLR)

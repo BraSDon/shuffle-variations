@@ -1,4 +1,5 @@
 import argparse
+import copy
 import os
 import random
 import sys
@@ -227,7 +228,7 @@ def get_criterion(criterion: str):
 def get_optimizer(model: torch.nn.Module, run_config):
     """Return the optimizer with the given name."""
     optimizer = run_config["optimizer"]["name"]
-    kwargs = run_config["optimizer"]["kwargs"]
+    kwargs = copy.deepcopy(run_config["optimizer"]["kwargs"])
     scaled_lr = get_scaled_lr(kwargs["lr"], run_config)
 
     # Remove lr from kwargs, as it is already scaled.
