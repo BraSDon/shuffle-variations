@@ -84,7 +84,7 @@ class Trainer:
         # Log the kl/js divergence of partition to full dataset.
         # Only required to be logged once
         if epoch == 0:
-            js, kl, mean, std = self._local_minibatch_statistics(label_frequencies)
+            js, kl, mean, std, _ = self._local_minibatch_statistics(label_frequencies)
             wandb.log(
                 {
                     f"kl_div_rank{dist.get_rank()}": kl,
@@ -113,7 +113,7 @@ class Trainer:
         kl = sum(kl_div(label_frequencies, ref_freq))
         js = jensenshannon(label_frequencies, ref_freq)
         mean, std = self.calc_mean_std_error_of_frequency(label_frequencies, ref_freq)
-        return js, kl, mean, std
+        return js, kl, mean, std, label_frequencies
 
     def test(self, epoch: int):
         self.model.eval()
@@ -250,7 +250,9 @@ class Trainer:
         label_frequencies = torch.bincount(
             local_minibatch_labels, minlength=self.my_dataset.num_classes
         )
-        js, kl, mean, std = self._local_minibatch_statistics(label_frequencies)
+        js, kl, mean, std, label_frequencies = self._local_minibatch_statistics(
+            label_frequencies
+        )
         wandb.log(
             {
                 f"{prefix}_batch": batch,
