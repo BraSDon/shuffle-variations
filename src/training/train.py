@@ -84,15 +84,13 @@ class Trainer:
         # Log the kl/js divergence of partition to full dataset.
         # Only required to be logged once
         if epoch == 0:
-            label_frequencies = label_frequencies.float() / label_frequencies.sum()
-            label_frequencies = label_frequencies.cpu()
-            ref_freq = self.my_dataset.train_label_frequencies
-            kl = sum(kl_div(label_frequencies, ref_freq))
-            js = jensenshannon(label_frequencies, ref_freq)
+            js, kl, mean, std = self._local_minibatch_statistics(label_frequencies)
             wandb.log(
                 {
                     f"kl_div_rank{dist.get_rank()}": kl,
                     f"js_div_rank{dist.get_rank()}": js,
+                    f"mean_error_rank{dist.get_rank()}": mean,
+                    f"std_error_rank{dist.get_rank()}": std,
                 }
             )
         self.log_statistics(
@@ -107,6 +105,15 @@ class Trainer:
         )
 
         print0(f"Epoch {epoch} finished")
+
+    def _local_minibatch_statistics(self, label_frequencies):
+        label_frequencies = label_frequencies.float() / label_frequencies.sum()
+        label_frequencies = label_frequencies.cpu()
+        ref_freq = self.my_dataset.train_label_frequencies
+        kl = sum(kl_div(label_frequencies, ref_freq))
+        js = jensenshannon(label_frequencies, ref_freq)
+        mean, std = self.calc_mean_std_error_of_frequency(label_frequencies, ref_freq)
+        return js, kl, mean, std
 
     def test(self, epoch: int):
         self.model.eval()
@@ -240,45 +247,37 @@ class Trainer:
         prefix = "train" if train else "test"
 
         # Calculate relative frequency of each label in the minibatch
-        label_counts = torch.bincount(
+        label_frequencies = torch.bincount(
             local_minibatch_labels, minlength=self.my_dataset.num_classes
         )
-        label_frequencies_device = label_counts.float() / label_counts.sum()
-        label_frequencies = label_frequencies_device.cpu()
-        ref_freq = self.my_dataset.train_label_frequencies
-        kl = sum(kl_div(label_frequencies, ref_freq))
-        js = jensenshannon(label_frequencies, ref_freq)
-        mean_error, std_error = self.calc_mean_std_error_of_frequency(
-            label_frequencies, ref_freq
-        )
+        js, kl, mean, std = self._local_minibatch_statistics(label_frequencies)
         wandb.log(
             {
                 f"{prefix}_batch": batch,
                 f"{prefix}_local_label_frequencies": label_frequencies.tolist(),
                 f"{prefix}_local_kl_div": kl,
                 f"{prefix}_local_js_div": js,
-                f"{prefix}_local_mean_error": mean_error,
-                f"{prefix}_local_std_error": std_error,
+                f"{prefix}_local_mean_error": mean,
+                f"{prefix}_local_std_error": std,
             }
         )
 
         # Gather all label frequencies from all processes
-        dist.all_reduce(label_frequencies_device, op=dist.ReduceOp.SUM)
-        label_frequencies_device /= dist.get_world_size()
+        dist.all_reduce(label_frequencies, op=dist.ReduceOp.SUM)
+        label_frequencies /= dist.get_world_size()
         label_frequencies = label_frequencies.cpu()
+        ref_freq = self.my_dataset.train_label_frequencies
         kl = sum(kl_div(label_frequencies, ref_freq))
         js = jensenshannon(label_frequencies, ref_freq)
-        mean_error, std_error = self.calc_mean_std_error_of_frequency(
-            label_frequencies, ref_freq
-        )
+        mean, std = self.calc_mean_std_error_of_frequency(label_frequencies, ref_freq)
         wandb.log(
             {
                 f"{prefix}_batch": batch,
                 f"{prefix}_global_label_frequencies": label_frequencies.tolist(),
                 f"{prefix}_global_kl_div": kl,
                 f"{prefix}_global_js_div": js,
-                f"{prefix}_global_mean_error": mean_error,
-                f"{prefix}_global_std_error": std_error,
+                f"{prefix}_global_mean_error": mean,
+                f"{prefix}_global_std_error": std,
             }
         )
 
