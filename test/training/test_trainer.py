@@ -37,13 +37,16 @@ class TestTrainer(unittest.TestCase):
         self.my_dataset.num_classes = 10
 
         self.run_config = {
+            "optimizer": {
+                "name": "sgd",
+                "kwargs": {"lr": 0.1, "momentum": 0.9, "weight_decay": 0.0001},
+            },
             "schedulers": {
                 "name": "step",
                 "kwargs": {"step_size": 5, "gamma": 0.1},
                 "warmup-epochs": 5,
                 "reference-kn": 4096,
             },
-            "learning-rate": 0.1,
             "batch-size": 128,
         }
 
