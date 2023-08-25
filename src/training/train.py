@@ -247,11 +247,16 @@ class Trainer:
         prefix = "train" if train else "test"
 
         # Calculate relative frequency of each label in the minibatch
-        label_frequencies = torch.bincount(
+        label_counts = torch.bincount(
             local_minibatch_labels, minlength=self.my_dataset.num_classes
         )
-        js, kl, mean, std, label_frequencies = self._local_minibatch_statistics(
-            label_frequencies
+        label_frequencies_device = label_counts.float() / label_counts.sum()
+        label_frequencies = label_frequencies_device.cpu()
+        ref_freq = self.my_dataset.train_label_frequencies
+        kl = sum(kl_div(label_frequencies, ref_freq))
+        js = jensenshannon(label_frequencies, ref_freq)
+        mean_error, std_error = self.calc_mean_std_error_of_frequency(
+            label_frequencies, ref_freq
         )
         wandb.log(
             {
@@ -259,27 +264,28 @@ class Trainer:
                 f"{prefix}_local_label_frequencies": label_frequencies.tolist(),
                 f"{prefix}_local_kl_div": kl,
                 f"{prefix}_local_js_div": js,
-                f"{prefix}_local_mean_error": mean,
-                f"{prefix}_local_std_error": std,
+                f"{prefix}_local_mean_error": mean_error,
+                f"{prefix}_local_std_error": std_error,
             }
         )
 
         # Gather all label frequencies from all processes
-        dist.all_reduce(label_frequencies, op=dist.ReduceOp.SUM)
-        label_frequencies /= dist.get_world_size()
+        dist.all_reduce(label_frequencies_device, op=dist.ReduceOp.SUM)
+        label_frequencies_device /= dist.get_world_size()
         label_frequencies = label_frequencies.cpu()
-        ref_freq = self.my_dataset.train_label_frequencies
         kl = sum(kl_div(label_frequencies, ref_freq))
         js = jensenshannon(label_frequencies, ref_freq)
-        mean, std = self.calc_mean_std_error_of_frequency(label_frequencies, ref_freq)
+        mean_error, std_error = self.calc_mean_std_error_of_frequency(
+            label_frequencies, ref_freq
+        )
         wandb.log(
             {
                 f"{prefix}_batch": batch,
                 f"{prefix}_global_label_frequencies": label_frequencies.tolist(),
                 f"{prefix}_global_kl_div": kl,
                 f"{prefix}_global_js_div": js,
-                f"{prefix}_global_mean_error": mean,
-                f"{prefix}_global_std_error": std,
+                f"{prefix}_global_mean_error": mean_error,
+                f"{prefix}_global_std_error": std_error,
             }
         )
 
