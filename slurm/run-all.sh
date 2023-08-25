@@ -10,16 +10,18 @@ ntasks=$(($nodes * $gpus_per_node))
 SBATCH_SCRIPT="#!/bin/bash
 
 #SBATCH --time=$time
-#SBATCH --partition=normal
+#SBATCH --partition=accelerated
 #SBATCH --nodes=$nodes
 #SBATCH --ntasks=$ntasks
-#SBATCH --gres=gpu:full:$gpus_per_node
+#SBATCH --gres=gpu:$gpus_per_node
+#SBATCH --account='hk-project-madonna'
+
 
 module load compiler/gnu/11
 module load devel/cuda/11.8
 module load mpi/openmpi/4.1
 
-source /hkfs/work/workspace_haic/scratch/tz6121-paper/paper/venv/bin/activate
+source /hkfs/work/workspace/scratch/tz6121-paper/paper/venv/bin/activate
 
 cd ..
 
