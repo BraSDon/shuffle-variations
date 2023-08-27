@@ -33,21 +33,23 @@ class CustomDistributedSampler(Sampler):
             # perform the same pre-shuffle.
             common_generator = torch.Generator()
             common_generator.manual_seed(seed)
-            self._pre_indices = torch.randperm(len(self.dataset), generator=common_generator).tolist()
+            self._pre_indices = torch.randperm(
+                len(self.dataset), generator=common_generator
+            ).tolist()
         else:
             self._pre_indices = list(range(len(self.dataset)))
 
         # step-wise vs. sequential partitioning
-        self.indices = self.case.partitioner.partition(self.world_size, self._pre_indices)[
-            self.rank
-        ]
+        self.indices = self.case.partitioner.partition(
+            self.world_size, self._pre_indices
+        )[self.rank]
 
     def __iter__(self):
         # local vs. no-shuffle
         if self.case.shuffle:
             start = time()
             indices = torch.randperm(
-                len(self.dataset), generator=self.generator
+                len(self.indices), generator=self.generator
             ).tolist()
             wandb.log({"epoch_shuffle_time": time() - start})
         else:
