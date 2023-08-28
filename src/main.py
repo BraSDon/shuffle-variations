@@ -105,6 +105,7 @@ def parse_configs() -> tuple[dict, dict]:
     if "case" not in run_config:
         run_config["case"] = args.case
 
+    print(f"Running case: {run_config['case']}")
     return system_config, run_config
 
 
