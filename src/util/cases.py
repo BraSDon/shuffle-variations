@@ -1,3 +1,5 @@
+import re
+
 from src.data.partition import SequentialPartitioner, StepPartitioner
 
 
@@ -18,12 +20,15 @@ class CaseFactory:
         :param name: Name of the configuration.
         :return: Configuration object.
         """
-        components = name.split("_")
-        assert len(components) == 3
-
-        pre_shuffle = components[0] == "pre"
-        partitioner = (
-            StepPartitioner() if components[1] == "step" else SequentialPartitioner()
+        match = re.fullmatch(r"(pre|asis)_(step|seq)_(local|noshuffle)", name)
+        # Throw expressive error message when name is invalid (match is None).
+        assert match is not None, (
+            f"Invalid name '{name}', "
+            f"expected name to be of the form '{{pre|asis}}_{{step|seq}}_{{local|noshuffle}}'"
         )
-        shuffle = components[2] == "local"
+        pre_shuffle = match.group(1) == "pre"
+        partitioner = (
+            StepPartitioner() if match.group(2) == "step" else SequentialPartitioner()
+        )
+        shuffle = match.group(3) == "local"
         return Case(name, pre_shuffle, partitioner, shuffle)
