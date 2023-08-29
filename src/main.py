@@ -86,30 +86,45 @@ def main():
 
 
 def parse_configs() -> tuple[dict, dict]:
+    """
+    Load the run-config and the system-config.
+    The path to the run-config can be passed as a cmd-line argument, the
+    system-config path is fixed. The case (e.g. pre-step-local) can be
+    specified via cmd-line argument or the run-config. In case both are
+    given, the config file will be prioritized.
+    :return: system_config, run_config
+    """
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--config_path", type=str, default="run-configs/default-config.yaml"
     )
     parser.add_argument("--case", type=str, default="baseline")
-
     args = parser.parse_args()
 
     with open(args.config_path, "r") as f:
         run_config = yaml.safe_load(f)
-
     with open("system-config.yaml", "r") as f:
         system_config = yaml.safe_load(f)
 
-    # Relevant for run-all.sh, as the case is passed as an argument.
-    # Furthermore, this ensures that the case is being logged to wandb.
     if "case" not in run_config:
         run_config["case"] = args.case
-
     print(f"Running case: {run_config['case']}")
+
     return system_config, run_config
 
 
-def setup_distributed_training(system: str, port: str):
+def setup_distributed_training(system: str, port: str) -> None:
+    """
+    Setup distributed training using torch.distributed.
+    Differentiate between local execution and server execution.
+    Local execution assumes a world size of four.
+    Server execution assumes a slurm environment that sets the following:
+    - SLURM_PROCID
+    - SLURM_NPROCS
+    - SLURM_LAUNCH_NODE_IPADDR
+    :param system: (local | server)
+    :param port: port to use for distributed training
+    """
     if system == "local":
         os.environ["MASTER_ADDR"] = "localhost"
         os.environ["MASTER_PORT"] = port
@@ -125,7 +140,12 @@ def setup_distributed_training(system: str, port: str):
     dist.init_process_group("nccl", rank=rank, world_size=world_size)
 
 
-def get_device(system: str):
+def get_device(system: str) -> torch.device:
+    """
+    Return the device to use for training.
+    :param system: (local | server)
+    :return: device
+    """
     if system == "local":
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     else:
@@ -136,6 +156,11 @@ def get_device(system: str):
 
 
 def setup_logging(run_config) -> wandb.run:
+    """
+    Setup weights and biases logging.
+    :param run_config: the run_config
+    :return: the wandb run
+    """
     return wandb.init(
         project="paper",
         group=run_config["group"],
@@ -144,7 +169,8 @@ def setup_logging(run_config) -> wandb.run:
     )
 
 
-def set_seeds(seed: int):
+def set_seeds(seed: int) -> None:
+    """Set the seed for torch, numpy and random."""
     if seed is None:
         return
     torch.manual_seed(seed)
@@ -154,7 +180,13 @@ def set_seeds(seed: int):
 
 
 def get_samplers(mydataset: MyDataset, case: str, seed: int) -> tuple[Sampler, Sampler]:
-    """Returns a sampler based on the case."""
+    """
+    Return the samplers for the train and test dataset.
+    :param mydataset: MyDataset instance, containing the train and test dataset
+    :param case: the case to use for this run (e.g. pre-step-local)
+    :param seed: the initial seed
+    :return: samplers for train and test dataset
+    """
     if case == "baseline":
         train_sampler = DistributedSampler(mydataset.train_dataset, seed=seed)
     else:
@@ -165,6 +197,13 @@ def get_samplers(mydataset: MyDataset, case: str, seed: int) -> tuple[Sampler, S
 
 
 def get_dataset(system_config: dict, run_config: dict, device) -> MyDataset:
+    """
+    Create and return a MyDataset instance based on the given config files.
+    :param system_config: system-config file
+    :param run_config: run-config file
+    :param device: device to use for training
+    :return: MyDataset instance
+    """
     dataset_name = run_config["dataset"]
     path = system_config["datasets"][dataset_name]["path"]
     train_transformations = system_config["datasets"][dataset_name]["transforms"][
@@ -185,7 +224,7 @@ def get_dataset(system_config: dict, run_config: dict, device) -> MyDataset:
     )
 
 
-def get_model_by_name(system_config, run_config) -> torch.nn.Module:
+def get_model_by_name(system_config: dict, run_config: dict) -> torch.nn.Module:
     """Return the model with the given name using torch.hub.load."""
     name = run_config["model"]
     repo = system_config["models"][name]["torch.hub.load"]["repo"]
@@ -216,7 +255,7 @@ def get_model_by_name(system_config, run_config) -> torch.nn.Module:
             )
 
 
-def get_criterion(criterion: str):
+def get_criterion(criterion: str) -> torch.nn.Module:
     """Return the criterion with the given name."""
     if criterion == "cross-entropy":
         return torch.nn.CrossEntropyLoss()
@@ -226,7 +265,7 @@ def get_criterion(criterion: str):
         raise NotImplementedError(f"Criterion {criterion} not implemented.")
 
 
-def get_optimizer(model: torch.nn.Module, run_config):
+def get_optimizer(model: torch.nn.Module, run_config: dict) -> torch.optim.Optimizer:
     """Return the optimizer with the given name."""
     optimizer = run_config["optimizer"]["name"]
     kwargs = copy.deepcopy(run_config["optimizer"]["kwargs"])
@@ -244,7 +283,9 @@ def get_optimizer(model: torch.nn.Module, run_config):
         raise NotImplementedError(f"Optimizer {optimizer} not implemented.")
 
 
-def get_scheduler(optimizer: torch.optim.Optimizer, run_config: dict):
+def get_scheduler(
+    optimizer: torch.optim.Optimizer, run_config: dict
+) -> torch.optim.lr_scheduler.LRScheduler:
     """
     Create SequentialLR consisting of gradual warmup lr that implements the
     strategy of: https://arxiv.org/abs/1706.02677. And an optional scheduler.
@@ -276,7 +317,8 @@ def get_scheduler(optimizer: torch.optim.Optimizer, run_config: dict):
     )
 
 
-def get_scaled_lr(initial_lr, run_config):
+def get_scaled_lr(initial_lr, run_config) -> float:
+    """Scale the initial lr based on the reference-kn."""
     return (
         initial_lr
         * run_config["batch-size"]
@@ -285,7 +327,8 @@ def get_scaled_lr(initial_lr, run_config):
     )
 
 
-def sanity_check(device):
+def sanity_check(device) -> None:
+    """Perform a sanity check before training."""
     rank = dist.get_rank()
     world_size = dist.get_world_size()
     print(f"Rank: {rank}, world_size: {world_size}")
@@ -293,7 +336,8 @@ def sanity_check(device):
     print(f"Running on {device}")
 
 
-def store_model_to_wandb(run, model: torch.nn.Module, run_config: dict):
+def store_model_to_wandb(run, model: torch.nn.Module, run_config: dict) -> None:
+    """Store the model to wandb."""
     if dist.get_rank() != 0:
         return
     filename = (
@@ -307,7 +351,7 @@ def store_model_to_wandb(run, model: torch.nn.Module, run_config: dict):
     run.log_artifact(artifact)
 
 
-def free_resources():
+def free_resources() -> None:
     wandb.finish()
     dist.destroy_process_group()
 
