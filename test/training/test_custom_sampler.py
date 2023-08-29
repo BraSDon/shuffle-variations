@@ -4,6 +4,7 @@ from unittest.mock import MagicMock, patch
 
 import torch
 import torch.distributed as dist
+from torch.utils.data import Dataset
 from torchvision.datasets import CIFAR10
 
 sys.path.insert(0, sys.path[0] + "/../../")
@@ -12,6 +13,23 @@ from src.main import setup_distributed_training, free_resources
 from src.util.cases import CaseFactory
 from src.training.custom_sampler import CustomDistributedSampler
 from src.data.sorted_dataset import SortedDataset
+
+
+class MockDataset(Dataset):
+    """
+    Mock dataset class for testing. Samples are integers from 0 to 10.
+    Targets are integers from 0 to 3 (sample modulo 4).
+    """
+
+    def __init__(self, length: int = 12) -> None:
+        self.length = length
+        self.targets = list(range(4)) * (length // 4)
+
+    def __getitem__(self, index: int) -> tuple[int, int]:
+        return index, index % 4
+
+    def __len__(self) -> int:
+        return self.length
 
 
 # NOTE: All tests are skipped (return without testing) if distributed training
@@ -92,6 +110,9 @@ class TestCustomDistributedSampler(unittest.TestCase):
         for indices in all_indices:
             self.assertEqual(pre_indices_tensor.tolist(), indices.tolist())
 
+        # Check if indices are not simply 0...n
+        self.assertNotEqual(sampler._pre_indices, list(range(len(sampler.dataset))))
+
     def test_iter_shuffle(self):
         """Test if local shuffle results in different indices each time iter is called."""
         if not dist.is_initialized():
@@ -112,6 +133,8 @@ class TestCustomDistributedSampler(unittest.TestCase):
 
             # Assert
             self.assertNotEqual(indices, indices2)
+            self.assertEqual(len(indices), len(indices2))
+            self.assertEqual([1], [1])
 
     def test_iter_no_shuffle(self):
         """Test if noshuffle results in same indices each time iter is called."""
@@ -193,6 +216,26 @@ class TestCustomDistributedSampler(unittest.TestCase):
                 ],
                 asis_seq_indices,
             )
+
+    def test_indices_mock_dataset(self):
+        if not dist.is_initialized():
+            return
+        dataset = SortedDataset(MockDataset())
+        asis_seq_case = CaseFactory.create_case("asis_seq_local")
+        asis_step_case = CaseFactory.create_case("asis_step_local")
+
+        with patch("src.training.custom_sampler.wandb") as mock_wandb:
+            mock_wandb.log = MagicMock()
+            asis_seq_sampler = CustomDistributedSampler(dataset, asis_seq_case, 1234)
+            asis_step_sampler = CustomDistributedSampler(dataset, asis_step_case, 1234)
+            asis_seq_indices = asis_seq_sampler.indices
+            asis_step_indices = asis_step_sampler.indices
+
+            r = dist.get_rank()
+
+            if r == 0:
+                self.assertEqual(asis_seq_indices, [0, 1, 2])
+                self.assertEqual(asis_step_indices, [0, 4, 8])
 
 
 if __name__ == "__main__":
