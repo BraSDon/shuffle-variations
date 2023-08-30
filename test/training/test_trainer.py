@@ -1,15 +1,20 @@
 import sys
 import unittest
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, patch, Mock
 
 import torchmetrics
 import torch
 import torch.distributed as dist
 from torch import nn
+from torch.utils.data import DataLoader
+from torch.utils.data.distributed import DistributedSampler
+
 
 sys.path.insert(0, sys.path[0] + "/../../")
 from src.main import setup_distributed_training, get_scheduler
 from src.training.train import Trainer
+from src.data.data import MyDataset
+from test.training.test_custom_sampler import MockDataset
 
 
 # NOTE: All tests are skipped (return without testing) if distributed training
@@ -62,6 +67,41 @@ class TestTrainer(unittest.TestCase):
             self.my_dataset,
             torch.device("cpu"),
         )
+
+    def test_train(self):
+        if not dist.is_initialized():
+            return
+        self.trainer.run_epoch = MagicMock()
+        self.trainer.test = MagicMock()
+
+        self.trainer.train(1)
+        self.trainer.run_epoch.assert_called_once()
+        self.trainer.test.assert_called_once()
+
+    @patch("src.training.train.Trainer.log_minibatch")
+    @patch("src.training.train.Trainer.log_statistics")
+    @patch("src.training.train.Trainer.update_sums")
+    def test_run_epoch(self, mock_sums, mock_statistics, mock_minibatch):
+        if not dist.is_initialized():
+            return
+
+        mock_sums.return_value = 0, 0, 0, 0
+
+        self.trainer.model = Mock(spec=DummyModel)
+        self.trainer.model.return_value = torch.tensor([1, 0])
+        self.trainer.my_dataset = Mock(spec=MyDataset)
+
+        self.trainer.my_dataset.num_classes = 3
+        self.trainer.my_dataset.train_label_frequencies = torch.tensor([1 / 3] * 3)
+
+        self.trainer.optimizer = MagicMock()
+        self.trainer.criterion = MagicMock()
+        dataset = MockDataset()
+        sampler = DistributedSampler(dataset, shuffle=False)
+        self.trainer.train_loader = DataLoader(dataset, batch_size=2, sampler=sampler)
+        self.trainer.device = torch.device("cpu")
+
+        self.trainer.run_epoch(1)
 
     @patch("src.training.train.Trainer.run_epoch")
     @patch("src.training.train.Trainer.test")
@@ -213,9 +253,9 @@ class TestTrainer(unittest.TestCase):
 
 
 class DummyModel(nn.Module):
-    def __init__(self):
+    def __init__(self, inx=10, outx=10):
         super(DummyModel, self).__init__()
-        self.fc = nn.Linear(10, 10)
+        self.fc = nn.Linear(inx, outx)
 
     def forward(self, x):
         return self.fc(x)

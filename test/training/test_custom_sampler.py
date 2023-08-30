@@ -18,15 +18,17 @@ from src.data.sorted_dataset import SortedDataset
 class MockDataset(Dataset):
     """
     Mock dataset class for testing. Samples are integers from 0 to 10.
-    Targets are integers from 0 to 3 (sample modulo 4).
+    Targets are one-hot encoded tensors with shape (num_classes,).
     """
 
-    def __init__(self, length: int = 12) -> None:
+    def __init__(self, length: int = 12, num_classes: int = 3) -> None:
         self.length = length
-        self.targets = list(range(4)) * (length // 4)
+        self.num_classes = num_classes
+        self.targets = torch.tensor([index % num_classes for index in range(length)])
 
-    def __getitem__(self, index: int) -> tuple[int, int]:
-        return index, index % 4
+    def __getitem__(self, index: int) -> tuple[torch.LongTensor, torch.LongTensor]:
+        target = self.targets[index]
+        return torch.LongTensor([index]), target
 
     def __len__(self) -> int:
         return self.length
