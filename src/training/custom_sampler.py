@@ -48,9 +48,8 @@ class CustomDistributedSampler(Sampler):
         # local vs. no-shuffle
         if self.case.shuffle:
             start = time()
-            indices = torch.randperm(
-                len(self.indices), generator=self.generator
-            ).tolist()
+            permutation = torch.randperm(len(self.indices), generator=self.generator)
+            indices = torch.gather(torch.tensor(self.indices), 0, permutation)
             wandb.log({"epoch_shuffle_time": time() - start})
         else:
             indices = self.indices
