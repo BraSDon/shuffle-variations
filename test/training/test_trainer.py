@@ -104,6 +104,8 @@ class TestTrainer(unittest.TestCase):
         self.trainer.run_epoch(1)
 
     def test_local_minibatch_statistics(self):
+        if not dist.is_initialized():
+            return
         label_frequencies = torch.tensor([5.0, 5.0, 5.0, 5.0])
         lfreq_rel = torch.tensor([0.25, 0.25, 0.25, 0.25])
         self.trainer.my_dataset.train_label_frequencies = lfreq_rel
