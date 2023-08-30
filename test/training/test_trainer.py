@@ -103,6 +103,24 @@ class TestTrainer(unittest.TestCase):
 
         self.trainer.run_epoch(1)
 
+    def test_local_minibatch_statistics(self):
+        label_frequencies = torch.tensor([5.0, 5.0, 5.0, 5.0])
+        lfreq_rel = torch.tensor([0.25, 0.25, 0.25, 0.25])
+        self.trainer.my_dataset.train_label_frequencies = lfreq_rel
+        (
+            js,
+            kl,
+            mean,
+            std,
+            label_frequencies_out,
+        ) = self.trainer._local_minibatch_statistics(label_frequencies)
+
+        self.assertEqual(js, 0.0)
+        self.assertEqual(mean, 0.0)
+        self.assertEqual(std, 0.0)
+        # Following for tensors: self.assertEqual(label_frequencies_out, lfreq_rel)
+        self.assertEqual(label_frequencies_out.tolist(), lfreq_rel.tolist())
+
     @patch("src.training.train.Trainer.run_epoch")
     @patch("src.training.train.Trainer.test")
     def test_lr_scheduler(self, m1, m2):
