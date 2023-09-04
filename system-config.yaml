@@ -86,6 +86,12 @@ datasets:
       name: CIFAR10
     transforms:
       train:
+        - name: Resize
+          kwargs:
+            size: [70, 70]
+        - name: RandomCrop
+          kwargs:
+            size: [64, 64]
         - name: ToTensor
           kwargs: {}
         - name: Normalize
@@ -93,6 +99,12 @@ datasets:
             mean: [0.4914, 0.4822, 0.4465]
             std: [0.247, 0.243, 0.261]
       test:
+        - name: Resize
+          kwargs:
+            size: [70, 70]
+        - name: CenterCrop
+          kwargs:
+            size: [64, 64]
         - name: ToTensor
           kwargs: {}
         - name: Normalize
@@ -109,6 +121,12 @@ datasets:
       name: CIFAR100
     transforms:
       train:
+        - name: Resize
+          kwargs:
+            size: [70, 70]
+        - name: RandomCrop
+          kwargs:
+            size: [64, 64]
         - name: ToTensor
           kwargs: {}
         - name: Normalize
@@ -116,6 +134,12 @@ datasets:
             mean: [0.4914, 0.4822, 0.4465]
             std: [0.247, 0.243, 0.261]
       test:
+        - name: Resize
+          kwargs:
+            size: [70, 70]
+        - name: CenterCrop
+          kwargs:
+            size: [64, 64]
         - name: ToTensor
           kwargs: {}
         - name: Normalize
