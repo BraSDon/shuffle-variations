@@ -73,8 +73,7 @@ class DeeperANN(nn.Module):
         self.tanh6 = nn.Tanh()
         self.fc7 = nn.Linear(300, 300)
         self.tanh7 = nn.Tanh()
-        self.fc8 = nn.Linear(300, 300)
-        self.tanh8 = nn.Tanh()
+        self.fc8 = nn.Linear(300, 2)
         self.softmax = nn.Softmax(dim=1)
 
     def forward(self, x):
