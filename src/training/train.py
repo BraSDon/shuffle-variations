@@ -1,7 +1,6 @@
 from time import time
 import wandb
 from scipy.spatial.distance import jensenshannon
-from scipy.special import kl_div
 
 import torchmetrics
 import torch
@@ -84,10 +83,9 @@ class Trainer:
         # Log the kl/js divergence of partition to full dataset.
         # Only required to be logged once
         if epoch == 0:
-            js, kl, mean, std, _ = self._local_minibatch_statistics(label_frequencies)
+            js, mean, std, _ = self._local_minibatch_statistics(label_frequencies)
             wandb.log(
                 {
-                    f"kl_div_rank{dist.get_rank()}": kl,
                     f"js_div_rank{dist.get_rank()}": js,
                     f"mean_error_rank{dist.get_rank()}": mean,
                     f"std_error_rank{dist.get_rank()}": std,
@@ -110,10 +108,9 @@ class Trainer:
         label_frequencies = label_frequencies.float() / label_frequencies.sum()
         label_frequencies = label_frequencies.cpu()
         ref_freq = self.my_dataset.train_label_frequencies
-        kl = sum(kl_div(label_frequencies, ref_freq))
         js = jensenshannon(label_frequencies, ref_freq)
         mean, std = self.calc_mean_std_error_of_frequency(label_frequencies, ref_freq)
-        return js, kl, mean, std, label_frequencies
+        return js, mean, std, label_frequencies
 
     def test(self, epoch: int):
         self.model.eval()
@@ -194,16 +191,6 @@ class Trainer:
 
         prefix = "train" if train else "test"
 
-        wandb.log(
-            {
-                "epoch": epoch,
-                f"{prefix}_epoch_time": required_time,
-                f"{prefix}_loss": loss_avg_local,
-                f"{prefix}_acc1": acc1_avg_local,
-                f"{prefix}_acc5": acc5_avg_local,
-                f"{prefix}_mcc": mcc_avg_local,
-            }
-        )
         loss_avg = self.average_statistic(loss_avg_local)
         acc1_avg = self.average_statistic(acc1_avg_local)
         acc5_avg = self.average_statistic(acc5_avg_local)
@@ -211,6 +198,7 @@ class Trainer:
         wandb.log(
             {
                 "epoch": epoch,
+                f"{prefix}_epoch_time": required_time,
                 f"{prefix}_loss_avg": loss_avg,
                 f"{prefix}_acc1_avg": acc1_avg,
                 f"{prefix}_acc5_avg": acc5_avg,
@@ -253,7 +241,6 @@ class Trainer:
         label_frequencies_device = label_counts.float() / label_counts.sum()
         label_frequencies = label_frequencies_device.cpu()
         ref_freq = self.my_dataset.train_label_frequencies
-        kl = sum(kl_div(label_frequencies, ref_freq))
         js = jensenshannon(label_frequencies, ref_freq)
         mean_error, std_error = self.calc_mean_std_error_of_frequency(
             label_frequencies, ref_freq
@@ -261,8 +248,6 @@ class Trainer:
         wandb.log(
             {
                 f"{prefix}_batch": batch,
-                f"{prefix}_local_label_frequencies": label_frequencies.tolist(),
-                f"{prefix}_local_kl_div": kl,
                 f"{prefix}_local_js_div": js,
                 f"{prefix}_local_mean_error": mean_error,
                 f"{prefix}_local_std_error": std_error,
@@ -273,7 +258,6 @@ class Trainer:
         dist.all_reduce(label_frequencies_device, op=dist.ReduceOp.SUM)
         label_frequencies_device /= dist.get_world_size()
         label_frequencies = label_frequencies.cpu()
-        kl = sum(kl_div(label_frequencies, ref_freq))
         js = jensenshannon(label_frequencies, ref_freq)
         mean_error, std_error = self.calc_mean_std_error_of_frequency(
             label_frequencies, ref_freq
@@ -281,8 +265,6 @@ class Trainer:
         wandb.log(
             {
                 f"{prefix}_batch": batch,
-                f"{prefix}_global_label_frequencies": label_frequencies.tolist(),
-                f"{prefix}_global_kl_div": kl,
                 f"{prefix}_global_js_div": js,
                 f"{prefix}_global_mean_error": mean_error,
                 f"{prefix}_global_std_error": std_error,
