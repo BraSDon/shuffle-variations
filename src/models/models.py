@@ -92,7 +92,5 @@ class DeeperANN(nn.Module):
         x = self.fc7(x)
         x = self.tanh7(x)
         x = self.fc8(x)
-        x = self.tanh8(x)
-        x = self.fc4(x)
         x = self.softmax(x)
         return x
