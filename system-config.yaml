@@ -19,6 +19,10 @@ models:
     torch.hub.load:
       repo:
       model:
+  deeper-ann:
+    torch.hub.load:
+      repo:
+      model:
   alexnet:
     torch.hub.load:
       repo: pytorch/vision:v0.10.0

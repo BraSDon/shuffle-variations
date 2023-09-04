@@ -15,7 +15,7 @@ import torch.distributed as dist
 
 sys.path.insert(0, sys.path[0] + "/../")
 
-from src.models.models import DummyModel, ANN
+from src.models.models import DummyModel, ANN, DeeperANN
 from src.training.train import Trainer
 from src.data.data import MyDataset
 from src.training.custom_sampler import CustomDistributedSampler
@@ -238,6 +238,8 @@ def get_model_by_name(system_config: dict, run_config: dict) -> torch.nn.Module:
         return DummyModel()
     elif name == "ann":
         return ANN()
+    elif name == "deeper-ann":
+        return DeeperANN()
     else:
         try:
             # Downstream code leads to an error when executed in parallel
