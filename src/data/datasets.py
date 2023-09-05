@@ -40,7 +40,7 @@ class SUSYDataset(Dataset):
 
         # Perform stratified train/test split
         X_train, X_test, y_train, y_test = train_test_split(
-            X, y, test_size=0.2, stratify=y
+            X, y, test_size=0.9, stratify=y
         )
 
         if train:
