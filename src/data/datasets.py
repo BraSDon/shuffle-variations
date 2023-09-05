@@ -44,9 +44,11 @@ class SUSYDataset(Dataset):
         )
 
         if train:
+            X_train = (X_train - X_train.mean()) / X_train.std()
             self.data = X_train
             self.targets = y_train
         else:
+            X_test = (X_test - X_test.mean()) / X_test.std()
             self.data = X_test
             self.targets = y_test
 
