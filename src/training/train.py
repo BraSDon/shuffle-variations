@@ -195,16 +195,18 @@ class Trainer:
         acc1_avg = self.average_statistic(acc1_avg_local)
         acc5_avg = self.average_statistic(acc5_avg_local)
         mcc_avg = self.average_statistic(mcc_avg_local)
-        wandb.log(
-            {
-                "epoch": epoch,
-                f"{prefix}_epoch_time": required_time,
-                f"{prefix}_loss_avg": loss_avg,
-                f"{prefix}_acc1_avg": acc1_avg,
-                f"{prefix}_acc5_avg": acc5_avg,
-                f"{prefix}_mcc_avg": mcc_avg,
-            }
-        )
+
+        if dist.get_rank() == 0:
+            wandb.log(
+                {
+                    "epoch": epoch,
+                    f"{prefix}_epoch_time": required_time,
+                    f"{prefix}_loss_avg": loss_avg,
+                    f"{prefix}_acc1_avg": acc1_avg,
+                    f"{prefix}_acc5_avg": acc5_avg,
+                    f"{prefix}_mcc_avg": mcc_avg,
+                }
+            )
 
     def average_statistic(self, statistic):
         if not isinstance(statistic, torch.Tensor):
@@ -241,35 +243,41 @@ class Trainer:
         label_frequencies_device = label_counts.float() / label_counts.sum()
         label_frequencies = label_frequencies_device.cpu()
         ref_freq = self.my_dataset.train_label_frequencies
-        js = jensenshannon(label_frequencies, ref_freq)
-        mean_error, std_error = self.calc_mean_std_error_of_frequency(
+        js_local = jensenshannon(label_frequencies, ref_freq)
+        mean_error_local, std_error_local = self.calc_mean_std_error_of_frequency(
             label_frequencies, ref_freq
-        )
-        wandb.log(
-            {
-                f"{prefix}_batch": batch,
-                f"{prefix}_local_js_div": js,
-                f"{prefix}_local_mean_error": mean_error,
-                f"{prefix}_local_std_error": std_error,
-            }
         )
 
         # Gather all label frequencies from all processes
         dist.all_reduce(label_frequencies_device, op=dist.ReduceOp.SUM)
         label_frequencies_device /= dist.get_world_size()
         label_frequencies = label_frequencies.cpu()
-        js = jensenshannon(label_frequencies, ref_freq)
-        mean_error, std_error = self.calc_mean_std_error_of_frequency(
+        js_global = jensenshannon(label_frequencies, ref_freq)
+        mean_error_global, std_error_global = self.calc_mean_std_error_of_frequency(
             label_frequencies, ref_freq
         )
-        wandb.log(
-            {
-                f"{prefix}_batch": batch,
-                f"{prefix}_global_js_div": js,
-                f"{prefix}_global_mean_error": mean_error,
-                f"{prefix}_global_std_error": std_error,
-            }
-        )
+
+        if dist.get_rank() == 0:
+            wandb.log(
+                {
+                    f"{prefix}_batch": batch,
+                    f"{prefix}_local_js_div": js_local,
+                    f"{prefix}_local_mean_error": mean_error_local,
+                    f"{prefix}_local_std_error": std_error_local,
+                    f"{prefix}_global_js_div": js_global,
+                    f"{prefix}_global_mean_error": mean_error_global,
+                    f"{prefix}_global_std_error": std_error_global,
+                }
+            )
+        else:
+            wandb.log(
+                {
+                    f"{prefix}_batch": batch,
+                    f"{prefix}_local_js_div": js_local,
+                    f"{prefix}_local_mean_error": mean_error_local,
+                    f"{prefix}_local_std_error": std_error_local,
+                }
+            )
 
     @staticmethod
     def calc_mean_std_error_of_frequency(

@@ -6,7 +6,6 @@ from time import time
 
 import torch
 import torch.distributed as dist
-import wandb
 from torch.utils.data import DataLoader, Dataset, Sampler
 from torchvision.transforms import transforms
 
@@ -105,9 +104,7 @@ class MyDataset:
         return train_dataset, test_dataset
 
     def sort_train_dataset(self):
-        start = time()
         self.train_dataset = SortedDataset(self.train_dataset)
-        wandb.log({"train_dataset_sort_time": time() - start})
 
     def _get_train_label_frequencies(self):
         # Calculate label frequency for train dataset.
@@ -115,12 +112,6 @@ class MyDataset:
         target_tensor = torch.Tensor(self.train_dataset.targets).type(torch.int32)
         bincount = torch.bincount(target_tensor, minlength=self.num_classes)
         print(f"Train_label_freq_calc_time: {time() - start}")
-        wandb.log(
-            {
-                "train_label_freq_calc_time": time() - start,
-                "train_label_freq": bincount / bincount.sum(),
-            }
-        )
         return bincount / bincount.sum()
 
     @staticmethod
@@ -172,7 +163,6 @@ class MyDataset:
             else:
                 self.copy_files(src, dst)
             print(f"[GPU {global_rank}] Done copying dataset in {time() - start:.2f}s.")
-            wandb.log({"dataset_copy_time": time() - start})
         dist.barrier()
         return dst
 
