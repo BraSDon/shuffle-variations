@@ -53,6 +53,14 @@ class Trainer:
         num_classes = self.my_dataset.num_classes
         num_batches = len(self.train_loader)
         label_frequencies = torch.zeros(self.my_dataset.num_classes, device=self.device)
+
+        # Check if sampler used by train_loader is DistributedSampler.
+        # If so, set epoch by using set_epoch() method.
+        if isinstance(
+            self.train_loader.sampler, torch.utils.data.distributed.DistributedSampler
+        ):
+            self.train_loader.sampler.set_epoch(epoch)
+
         start_time = time()
         for i, (inputs, labels) in enumerate(self.train_loader):
             inputs, labels = inputs.to(self.device), labels.to(self.device)

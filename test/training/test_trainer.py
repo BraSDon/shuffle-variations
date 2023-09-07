@@ -98,10 +98,13 @@ class TestTrainer(unittest.TestCase):
         self.trainer.criterion = MagicMock()
         dataset = MockDataset()
         sampler = DistributedSampler(dataset, shuffle=False)
+        self.assertEqual(sampler.epoch, 0)
+
         self.trainer.train_loader = DataLoader(dataset, batch_size=2, sampler=sampler)
         self.trainer.device = torch.device("cpu")
 
         self.trainer.run_epoch(1)
+        self.assertEqual(sampler.epoch, 1)
 
     def test_local_minibatch_statistics(self):
         if not dist.is_initialized():
@@ -111,7 +114,6 @@ class TestTrainer(unittest.TestCase):
         self.trainer.my_dataset.train_label_frequencies = lfreq_rel
         (
             js,
-            kl,
             mean,
             std,
             label_frequencies_out,
