@@ -42,16 +42,21 @@ class CustomDistributedSampler(Sampler):
             self.world_size, self._pre_indices
         )[self.rank]
 
+        # adjusted means we perform a single shuffle after partitioning
+        if case.adjusted:
+            self.__shuffle_indices()
+
     def __iter__(self):
         # local vs. no-shuffle
         if self.case.shuffle:
-            permutation = torch.randperm(len(self.indices), generator=self.generator)
-            indices = torch.gather(torch.tensor(self.indices), 0, permutation)
-        else:
-            indices = self.indices
+            self.__shuffle_indices()
 
         # TODO: Track indices for each rank. (should change wandb dir then)
-        return iter(indices)
+        return iter(self.indices)
 
     def __len__(self):
         return len(self.indices)
+
+    def __shuffle_indices(self):
+        permutation = torch.randperm(len(self.indices), generator=self.generator)
+        self.indices = torch.gather(torch.tensor(self.indices), 0, permutation)

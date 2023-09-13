@@ -21,7 +21,7 @@ class TestCaseFactory(unittest.TestCase):
     def test_create_case_asis_seq_noshuffle(self):
         # Arrange
         name = "asis_seq_noshuffle"
-        expected_case = Case(name, False, SequentialPartitioner(), False)
+        expected_case = Case(name, False, SequentialPartitioner(), False, False)
 
         # Act
         actual_case = CaseFactory.create_case(name)
@@ -31,6 +31,22 @@ class TestCaseFactory(unittest.TestCase):
         self.assertEqual(actual_case.pre_shuffle, expected_case.pre_shuffle)
         self.assertIsInstance(actual_case.partitioner, SequentialPartitioner)
         self.assertEqual(actual_case.shuffle, expected_case.shuffle)
+        self.assertEqual(actual_case.adjusted, expected_case.adjusted)
+
+    def test_create_case_pre_seq_noshuffle_adj(self):
+        # Arrange
+        name = "pre_seq_noshuffle_adj"
+        expected_case = Case(name, True, SequentialPartitioner(), False, True)
+
+        # Act
+        actual_case = CaseFactory.create_case(name)
+
+        # Assert
+        self.assertEqual(actual_case.name, expected_case.name)
+        self.assertEqual(actual_case.pre_shuffle, expected_case.pre_shuffle)
+        self.assertIsInstance(actual_case.partitioner, SequentialPartitioner)
+        self.assertEqual(actual_case.shuffle, expected_case.shuffle)
+        self.assertEqual(actual_case.adjusted, expected_case.adjusted)
 
     def test_create_case_invalid_name(self):
         # Arrange
