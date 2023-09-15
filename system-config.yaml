@@ -42,7 +42,11 @@ models:
   deit-base:
     torch.hub.load:
       repo: facebookresearch/deit:main
-      model: deit_base_patch_224
+      model: deit_base_patch16_224
+  deit-small:
+    torch.hub.load:
+      repo: facebookresearch/deit:main
+      model: deit_small_patch16_224
 
 
 # Describe datasets that are available
