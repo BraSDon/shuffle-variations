@@ -19,6 +19,7 @@ from src.models.models import DummyModel, ANN, DeeperANN
 from src.training.train import Trainer
 from src.data.data import MyDataset
 from src.training.custom_sampler import CustomDistributedSampler
+from src.training.stratified_sampler import StratifiedSampler
 from src.util.cases import CaseFactory
 
 
@@ -41,12 +42,12 @@ def main():
     set_seeds(run_config["seed"])
 
     # 4. Setup dataloaders
-    my_dataset = get_dataset(system_config, run_config, device)
-    train_sampler, test_sampler = get_samplers(
-        my_dataset, run_config["case"], run_config["seed"]
-    )
     batch_size = run_config["batch-size"]
     num_workers = run_config["num-workers"]
+    my_dataset = get_dataset(system_config, run_config, device)
+    train_sampler, test_sampler = get_samplers(
+        my_dataset, run_config["case"], batch_size, run_config["seed"]
+    )
     train_loader = my_dataset.get_train_loader(train_sampler, batch_size, num_workers)
     test_loader = my_dataset.get_test_loader(test_sampler, batch_size, num_workers)
 
@@ -179,18 +180,26 @@ def set_seeds(seed: int) -> None:
     random.seed(seed)
 
 
-def get_samplers(mydataset: MyDataset, case: str, seed: int) -> tuple[Sampler, Sampler]:
+def get_samplers(
+    mydataset: MyDataset, case: str, batch_size: int, seed: int
+) -> tuple[Sampler, Sampler]:
     """
     Return the samplers for the train and test dataset.
     :param mydataset: MyDataset instance, containing the train and test dataset
     :param case: the case to use for this run (e.g. pre-step-local)
+    :param batch_size: the batch size
     :param seed: the initial seed
     :return: samplers for train and test dataset
     """
     if case == "baseline":
         train_sampler = DistributedSampler(mydataset.train_dataset, seed=seed)
+    elif case == "stratified":
+        train_sampler = StratifiedSampler(
+            mydataset.train_dataset, batch_size=batch_size, seed=seed
+        )
     else:
         case = CaseFactory.create_case(case)
+        mydataset.sort_train_dataset()
         train_sampler = CustomDistributedSampler(mydataset.train_dataset, case, seed)
     test_sampler = DistributedSampler(mydataset.test_dataset)
     return train_sampler, test_sampler
