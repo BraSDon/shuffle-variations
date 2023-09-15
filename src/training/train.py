@@ -259,7 +259,7 @@ class Trainer:
         # Gather all label frequencies from all processes
         dist.all_reduce(label_frequencies_device, op=dist.ReduceOp.SUM)
         label_frequencies_device /= dist.get_world_size()
-        label_frequencies = label_frequencies.cpu()
+        label_frequencies = label_frequencies_device.cpu()
         js_global = jensenshannon(label_frequencies, ref_freq)
         mean_error_global, std_error_global = self.calc_mean_std_error_of_frequency(
             label_frequencies, ref_freq
