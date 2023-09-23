@@ -189,6 +189,10 @@ def get_samplers(mydataset: MyDataset, case: str, seed: int) -> tuple[Sampler, S
     """
     if case == "baseline":
         train_sampler = DistributedSampler(mydataset.train_dataset, seed=seed)
+    elif case == "noshuffle":
+        train_sampler = DistributedSampler(
+            mydataset.train_dataset, shuffle=False, seed=seed
+        )
     else:
         case = CaseFactory.create_case(case)
         train_sampler = CustomDistributedSampler(mydataset.train_dataset, case, seed)
