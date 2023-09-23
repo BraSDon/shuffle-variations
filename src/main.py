@@ -216,6 +216,9 @@ def get_dataset(system_config: dict, run_config: dict, device) -> MyDataset:
     test_transformations = system_config["datasets"][dataset_name]["transforms"]["test"]
     load_function = system_config["datasets"][dataset_name]["load-function"]
     num_classes = system_config["datasets"][dataset_name]["num-classes"]
+    dataset_size = run_config["dataset-size"]
+    assert dataset_size <= 1
+    seed = run_config["seed"]
 
     return MyDataset(
         dataset_name,
@@ -225,6 +228,8 @@ def get_dataset(system_config: dict, run_config: dict, device) -> MyDataset:
         load_function,
         num_classes,
         device,
+        dataset_size,
+        seed,
     )
 
 

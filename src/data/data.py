@@ -29,6 +29,8 @@ class MyDataset:
         load_function: dict,
         num_classes: int,
         device,
+        dataset_size=1,
+        seed=0,
     ):
         self.name = name
         self.path = path
@@ -43,8 +45,10 @@ class MyDataset:
         self.path = self.copy_dataset_to_tmp()
 
         self.train_dataset, self.test_dataset = self.__get_datasets()
+        # Only use dataset_size fraction of the dataset.
+        self.train_dataset = self.__choose_random_subset(dataset_size, seed)
         self.train_label_frequencies = self._get_train_label_frequencies()
-        self.sort_train_dataset()  # Make sure that train_dataset is sorted by class.
+        # self.sort_train_dataset()  # Make sure that train_dataset is sorted by class.
 
     def get_train_loader(
         self, sampler: Sampler, batch_size: int, num_workers: int, **kwargs
@@ -102,6 +106,16 @@ class MyDataset:
         else:
             raise ValueError(f"Unknown load function type: {self._lf_type}")
         return train_dataset, test_dataset
+
+    def __choose_random_subset(self, dataset_size, seed):
+        if dataset_size == 1:
+            return self.train_dataset
+        else:
+            return torch.utils.data.random_split(
+                self.train_dataset,
+                [dataset_size, 1 - dataset_size],
+                generator=torch.Generator().manual_seed(seed),
+            )[0]
 
     def sort_train_dataset(self):
         self.train_dataset = SortedDataset(self.train_dataset)
