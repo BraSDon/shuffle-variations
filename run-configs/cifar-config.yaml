@@ -1,0 +1,23 @@
+group: default
+dataset: CIFAR10
+model: mobilenet_v3_small
+case: baseline
+criterion: cross-entropy
+seed: 1
+num-workers: 4
+batch-size: 128
+max-epochs: 20
+
+optimizer:
+  name: rmsprop
+  kwargs:
+    lr: 0.1
+    weight_decay: 0.00001
+
+schedulers:
+  warmup-epochs: 5
+  reference-kn: 4096
+  name: step
+  kwargs:
+    step_size: 3
+    gamma: 0.99

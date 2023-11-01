@@ -3,7 +3,8 @@ from abc import abstractmethod, ABCMeta
 
 class Partitioner(metaclass=ABCMeta):
     @abstractmethod
-    def partition(self, world_size, indices):
+    def partition(self, world_size: int, indices: list[int]) -> list[list[int]]:
+        """Partitions indices into world_size disjoint partitions of the same size."""
         pass
 
 

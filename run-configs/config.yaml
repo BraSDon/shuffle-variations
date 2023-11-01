@@ -1,0 +1,28 @@
+group: default
+dataset: CIFAR10
+model: dummy
+case: pre_step_local
+criterion: cross-entropy
+seed: 1
+num-workers: 4
+batch-size: 32
+max-epochs: 2
+
+optimizer:
+  name: adam
+  kwargs:
+    lr: 0.1
+    weight_decay: 0.00001
+
+schedulers:
+  warmup-epochs: 5
+  reference-kn: 4096
+  name: none
+  kwargs:
+    x: 0
+
+
+# SBATCH params
+nodes: 1
+gpus-per-node: 4
+time: 00:20:00
