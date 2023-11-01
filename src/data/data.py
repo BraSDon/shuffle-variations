@@ -44,7 +44,6 @@ class MyDataset:
 
         self.train_dataset, self.test_dataset = self.__get_datasets()
         self.train_label_frequencies = self._get_train_label_frequencies()
-        self.sort_train_dataset()  # Make sure that train_dataset is sorted by class.
 
     def get_train_loader(
         self, sampler: Sampler, batch_size: int, num_workers: int, **kwargs
