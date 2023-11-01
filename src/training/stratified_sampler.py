@@ -29,8 +29,6 @@ class StratifiedSampler(Sampler):
             )
             sampled_indices.extend(sampled[rank::world_size])
 
-        # print(f"Sampled: {sampled_indices}")
-        # print(f"Avail: {avail_indices}")
         return sampled_indices
 
     def __sample(self, avail_indices, size) -> tuple[list[int], list[int]]:
