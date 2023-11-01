@@ -1,8 +1,8 @@
 # Shuffle Variations
 
-![GitHub stars](https://github.com/BraSDon/paper)
-![GitHub forks](https://github.com/BraSDon/paper)
-![GitHub license](https://github.com/BraSDon/paper)
+![GitHub stars](https://img.shields.io/github/stars/BraSDon/shuffle-variations)
+![GitHub forks](https://img.shields.io/github/forks/BraSDon/shuffle-variations)
+![GitHub license](https://img.shields.io/github/license/BraSDon/shuffle-variations)
 
 Repository for experimenting with different inter-epoch shuffling methods in data parallel training of neural networks.
 
