@@ -1,46 +1,78 @@
-# paper
-Repository for experiments regarding &lt;paper>
+# Shuffle Variations
 
-## Dependencies
+![GitHub stars](https://github.com/BraSDon/paper)
+![GitHub forks](https://github.com/BraSDon/paper)
+![GitHub license](https://github.com/BraSDon/paper)
 
-## Setup
+Repository for experimenting with different inter-epoch shuffling methods in data parallel training of neural networks.
 
-## Usage
+## Introduction
 
-## Structure
-```
+This repository is dedicated to the exploration of various techniques for shuffling data between epochs during the training of neural networks. The primary goals of this research project are:
+
+1. **Reducing Communication Overhead:** Find methods that require less communication between nodes/ranks in distributed training environments.
+2. **Sequential Data Access:** Develop strategies that allow for sequential data access during training.
+3. **Maintaining Quality Metrics:** Ensure that the quality of models trained using these shuffling methods remains state-of-the-art (SOTA).
+
+## Key Objectives
+
+- Identify efficient data shuffling techniques for neural network training.
+- Investigate ways to minimize communication overhead in distributed training setups.
+- Preserve or improve the quality of trained models while optimizing data shuffling.
+
+## Who Is This For?
+
+This repository is relevant for you if:
+
+- You're interested in speeding up the training of neural networks by reducing shuffling overhead.
+- You're exploring the usage of Data Parallelism (DDP) on a Slurm cluster.
+- You're curious about innovative techniques for managing data in deep learning projects.
+
+## Getting Started
+1. Clone the repository
+2. Install requirements.txt
+3. Adjust the system-config.yaml file to your needs
+4. Add your own run-config in the run-configs folder
+
+Slurm Cluster:
+5. Add your own Slurm batch script in the slurm folder
+6. Submit the Slurm job
+
+Local (4 processes fixed!, CPU execution):
+5. torchrun --nproc_per_node=4 main.py --config_path=run-configs/<your-config>.yaml
+
+## Repository Structure
+
+The repository is organized as follows:
+
+```markdown
 .
 ├── README.md
 ├── data
 ├── notebooks
-│    ├── README.md
 ├── run-configs
 ├── slurm
 ├── src
-    ├── README.md
-    ├── main.py
-    ├── data
-    │    ├── README.md
-    │    ├── data.py
-    │    ├── partition.py
-    │    ├── sorted_dataset.py
-    ├── models
-    │    ├── README.md
-    │    ├── models.py
-    ├── training
-    │    ├── README.md
-    │    ├── train.py
-    │    ├── custom_sampler.py
-    ├── util
-    │    ├── README.md
-    │    ├── cases.py
-    │    ├── helper.py
-    ├── visualization
-    │    ├── README.md
-    │    ├── visualize.py
+│   ├── main.py
+│   ├── data
+│   │   ├── data.py
+│   │   ├── datasets.py
+│   │   ├── partition.py
+│   │   ├── sorted_dataset.py
+│   ├── models
+│   │   ├── models.py
+│   ├── training
+│   │   ├── train.py
+│   │   ├── custom_sampler.py
+│   │   ├── stratified_sampler.py
+│   ├── util
+│   │   ├── cases.py
+│   │   ├── helper.py
+│   ├── visualization
 ├── test
 ├── wandb
 ├── system-config.yaml
+
 ```
 
 ## system-config.yaml
