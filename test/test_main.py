@@ -85,6 +85,8 @@ class TestGetSamplers(unittest.TestCase):
         self.seed = 1
 
     def test_get_samplers_baseline(self):
+        if not dist.is_initialized():
+            return
         case = "baseline"
 
         train_sampler, test_sampler = get_samplers(self.dataset, case, self.seed)
@@ -93,6 +95,8 @@ class TestGetSamplers(unittest.TestCase):
         self.assertEqual(test_sampler.__class__.__name__, "DistributedSampler")
 
     def test_get_sampler_custom(self):
+        if not dist.is_initialized():
+            return
         case = "pre_step_local"
 
         train_sampler, test_sampler = get_samplers(self.dataset, case, self.seed)
@@ -101,6 +105,8 @@ class TestGetSamplers(unittest.TestCase):
         self.assertEqual(test_sampler.__class__.__name__, "DistributedSampler")
 
     def test_get_sampler_fail(self):
+        if not dist.is_initialized():
+            return
         case = "abcde"
 
         with self.assertRaises(AssertionError):

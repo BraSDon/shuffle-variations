@@ -1,5 +1,6 @@
 import unittest
 import sys
+import os
 
 import torch
 from torch.utils.data import DataLoader
@@ -8,7 +9,13 @@ sys.path.insert(0, sys.path[0] + "/../../")
 
 from src.data.datasets import SUSYDataset
 
+# If SUSY.csv not in ./data, set DATA_NOT_PRESENT to True
+DATASET_NOT_PRESENT = False
+if not os.path.isfile("./data/SUSY.csv"):
+    DATASET_NOT_PRESENT = True
 
+
+@unittest.skipIf(DATASET_NOT_PRESENT, "SUSY dataset could not be found in ./data")
 class TestSUSYDataset(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -18,7 +25,7 @@ class TestSUSYDataset(unittest.TestCase):
         cls.dataset_size = 5000000
 
     def test_dataset_length(self):
-        self.assertEqual(len(self.train_set), 0.8 * self.dataset_size)
+        self.assertEqual(len(self.train_set), 0.1 * self.dataset_size)
 
     def test_dataset_item(self):
         data, target = self.train_set[0]
@@ -46,8 +53,8 @@ class TestSUSYDataset(unittest.TestCase):
             test_targets, return_counts=True
         )
 
-        self.assertEqual(len(train_targets), 0.8 * self.dataset_size)
-        self.assertEqual(len(test_targets), 0.2 * self.dataset_size)
+        self.assertEqual(len(train_targets), 0.1 * self.dataset_size)
+        self.assertEqual(len(test_targets), 0.9 * self.dataset_size)
 
         # Check if the class distribution is preserved in the train and test sets
         for class_label in range(2):

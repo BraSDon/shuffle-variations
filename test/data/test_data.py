@@ -28,23 +28,19 @@ class TestMyDataset(unittest.TestCase):
         train_transformations = [
             {"name": "ToTensor", "kwargs": {}},
         ]
-        with patch("src.data.data.wandb") as mock_wandb:
-            mock_wandb.log = (
-                MagicMock()
-            )  # Creating a mock of wandb.log() to avoid errors.
-            self.dataset = MyDataset(
-                "CIFAR10",
-                self.data_path,
-                train_transformations,
-                [],
-                {
-                    "module": "torchvision.datasets.cifar",
-                    "type": "built-in",
-                    "name": "CIFAR10",
-                },
-                10,
-                torch.device("cpu"),
-            )
+        self.dataset = MyDataset(
+            "CIFAR10",
+            self.data_path,
+            train_transformations,
+            [],
+            {
+                "module": "torchvision.datasets.cifar",
+                "type": "built-in",
+                "name": "CIFAR10",
+            },
+            10,
+            torch.device("cpu"),
+        )
 
     def test_get_dataloaders(self):
         """Test getting the dataloaders as well as basic properties."""
